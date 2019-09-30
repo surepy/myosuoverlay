@@ -11,6 +11,16 @@ using namespace DirectX;
 
 using Microsoft::WRL::ComPtr;
 
+template <typename T>
+// helper function.. todo move to main.cpp
+std::wstring to_wstring_with_precision(const T a_value, const int n = 6)
+{
+    std::wstringstream out;
+    out.precision(n);
+    out << std::fixed << a_value;
+    return out.str();
+}
+
 Overlay::Overlay() noexcept :
     m_window(nullptr),
     m_outputWidth(800),
@@ -36,9 +46,32 @@ void Overlay::Initialize(HWND window, int width, int height)
     m_timer.SetTargetElapsedSeconds(1.0 / 60);
 }
 
+bool Overlay::loadMap(gameplayStats &gameStat)
+{
+    std::wstring osuMap = static_cast<std::wstring>(gameStat.mfOsuFileLoc->ReadToEnd());
+    if (gameStat.currentMap.loadedMap.compare(osuMap) != 0)
+    {
+        gameStat.currentMap.searchIndex = 0;
+        try
+        {
+            if (!gameStat.currentMap.Parse(osuMap))
+            {
+                return false;
+            }
+            gameStat.currentMap.loadedMap = osuMap;
+        }
+        catch (std::out_of_range)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 // Executes the basic game loop.
 void Overlay::Tick(gameplayStats &gameStat)
 {
+    bool mapLoaded = loadMap(gameStat);
     gameStat.currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()
         );
@@ -87,6 +120,38 @@ void Overlay::Tick(gameplayStats &gameStat)
         gameStat.clicky = false;
     }
 
+    if (mapLoaded)
+    {
+        try {
+            bool bnFound = true;
+
+            //  the map is restarted. prob a better way to do this exist but /shrug
+            if (gameStat.osuMapTime > std::stod(gameStat.mfOsuMapTime->ReadToEnd()) * 1000)
+            {
+                gameStat.currentMap.searchIndex = 0;
+            }
+
+            gameStat.osuMapTime = static_cast<int>(std::stod(gameStat.mfOsuMapTime->ReadToEnd()) * 1000);
+
+            for (uint32_t i = gameStat.currentMap.searchIndex; i < gameStat.currentMap.timingpoints.size() && bnFound; i++)
+            {
+                if (gameStat.osuMapTime >= gameStat.currentMap.timingpoints[i].offset)
+                {
+                    gameStat.currentMap.currentBpm = static_cast<int>(60000 / gameStat.currentMap.timingpoints[i].ms_per_beat);
+                    gameStat.currentMap.currentSpeed = gameStat.currentMap.timingpoints[i].velocity;
+                    gameStat.currentMap.kiai = gameStat.currentMap.timingpoints[i].kiai;
+                    gameStat.currentMap.searchIndex = i;
+                    bnFound = false;
+                }
+            }
+            gameStat.osuMapTimeLoaded = true;
+        }
+        catch (std::invalid_argument)
+        {
+            gameStat.osuMapTimeLoaded = false;
+        }
+    }
+
     Render(gameStat);
 }
 
@@ -112,20 +177,115 @@ void Overlay::Render(gameplayStats &gameStat)
 
     // TODO: Add your rendering code here.
 
+    m_d3dContext->OMSetBlendState(m_states->Opaque(), nullptr, 0xFFFFFFFF);
+    m_d3dContext->OMSetDepthStencilState(m_states->DepthNone(), 0);
+    m_d3dContext->RSSetState(m_states->CullNone());
+
+    m_effect->Apply(m_d3dContext.Get());
+
+    m_d3dContext->IASetInputLayout(m_inputLayout.Get());
+
     m_spriteBatch->Begin();
+    m_batch->Begin();
 
     std::wstring textString;
+    XMVECTOR result;
+
+    // set font origin
+    DirectX::SimpleMath::Vector2 origin = DirectX::SimpleMath::Vector2(0.f, 0.f);
+    //m_font->MeasureString(textString.c_str()) / 2.f;
+    //middle
+
+    /*
+     * tap bpm + map bpm + velocity string
+     */
+    textString = std::to_wstring(gameStat.clicks.size() * 60 / 4) + std::wstring(L"/") + std::to_wstring(gameStat.currentMap.currentBpm) + std::wstring(L" (x")
+        + to_wstring_with_precision(gameStat.currentMap.currentSpeed, 2) + std::wstring(L") bpm");
+
+    origin.x = XMVectorGetX(m_font->MeasureString(textString.c_str()));
+
+    m_fontPos = DirectX::SimpleMath::Vector2(0.f + 370.f, m_outputHeight - 21.f);
+
+    result = RenderStatSquare(textString, origin, m_fontPos, Colors::Red, Colors::Black, 2);
+
+    /*
+     * Kps + (totalclicks) string
+     */
+    origin = DirectX::SimpleMath::Vector2(0.f, 0.f);
 
     textString = std::wstring(L"kps: ") + std::to_wstring(gameStat.clicks.size()) + std::wstring(L" (") + std::to_wstring(gameStat.clickCounter) + std::wstring(L")");
 
-    DirectX::SimpleMath::Vector2 origin = m_font->MeasureString(textString.c_str()) / 2.f;
+    m_fontPos.x += 30;
 
-    m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
-        m_fontPos, Colors::White, 0.f, origin, 0.5f);
+    result = RenderStatSquare(textString, origin, m_fontPos);
 
+    m_batch->End();
     m_spriteBatch->End();
 
     Present();
+}
+
+XMVECTOR Overlay::RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &fontPos, DirectX::XMVECTORF32 tColor, DirectX::XMVECTORF32 bgColor, int v)
+{
+    /* we're gonna draw this like:
+     0,0
+              v4------------------------------v3 (offsetx 3px)
+              |                               |
+              v1------------------------------v2 (offsetx 3px)
+                                                       1280,720
+
+         where v (default v1) = origin.
+         Assumes font->Begin() and batch->Begin() is called.
+         returns the string measure.
+     */
+
+    XMVECTOR textvec = m_font->MeasureString(text.c_str());
+
+    //   (XMVectorGetX(textvec) / 2.f), (XMVectorGetY(textvec) / 2.f)
+
+    /*
+     *  Cannot think of better way it's 12:02- shitcoding.
+     */
+    DirectX::SimpleMath::Vector3 v1, v2, v3, v4;
+    switch (v)
+    {
+    case 1:
+        v1 = DirectX::SimpleMath::Vector3(fontPos.x, fontPos.y, 0.f);
+        v2 = DirectX::SimpleMath::Vector3(fontPos.x + (XMVectorGetX(textvec) / 2.f) + 3, fontPos.y, 0.f);
+        v3 = DirectX::SimpleMath::Vector3(fontPos.x + (XMVectorGetX(textvec) / 2.f) + 3, fontPos.y + (XMVectorGetY(textvec) / 2.f), 0.f);
+        v4 = DirectX::SimpleMath::Vector3(fontPos.x, fontPos.y + (XMVectorGetY(textvec) / 2.f), 0.f);
+        break;
+    case 2:
+        v1 = DirectX::SimpleMath::Vector3(fontPos.x - (XMVectorGetX(textvec) / 2.f), fontPos.y, 0.f);
+        v2 = DirectX::SimpleMath::Vector3(fontPos.x + 3, fontPos.y, 0.f);
+        v3 = DirectX::SimpleMath::Vector3(fontPos.x + 3, fontPos.y + (XMVectorGetY(textvec) / 2.f), 0.f);
+        v4 = DirectX::SimpleMath::Vector3(fontPos.x - (XMVectorGetX(textvec) / 2.f), fontPos.y + (XMVectorGetY(textvec) / 2.f), 0.f);
+        break;
+    case 3:
+        v1 = DirectX::SimpleMath::Vector3(fontPos.x - (XMVectorGetX(textvec) / 2.f), fontPos.y - (XMVectorGetY(textvec) / 2.f), 0.f);
+        v2 = DirectX::SimpleMath::Vector3(fontPos.x + 3, fontPos.y - (XMVectorGetY(textvec) / 2.f), 0.f);
+        v3 = DirectX::SimpleMath::Vector3(fontPos.x + 3, fontPos.y, 0.f);
+        v4 = DirectX::SimpleMath::Vector3(fontPos.x - (XMVectorGetX(textvec) / 2.f), fontPos.y + (XMVectorGetY(textvec) / 2.f), 0.f);
+        break;
+    case 4:
+        v1 = DirectX::SimpleMath::Vector3(fontPos.x, fontPos.y - (XMVectorGetY(textvec) / 2.f), 0.f);;
+        v2 = DirectX::SimpleMath::Vector3(fontPos.x + (XMVectorGetX(textvec) / 2.f) + 3, fontPos.y - (XMVectorGetY(textvec) / 2.f), 0.f);;
+        v3 = DirectX::SimpleMath::Vector3(fontPos.x + (XMVectorGetX(textvec) / 2.f) + 3, fontPos.y, 0.f);
+        v4 = DirectX::SimpleMath::Vector3(fontPos.x, fontPos.y, 0.f);
+        break;
+    }
+
+    VertexPositionColor vp1(v1, bgColor);
+    VertexPositionColor vp2(v2, bgColor);
+    VertexPositionColor vp3(v3, bgColor);
+    VertexPositionColor vp4(v4, bgColor);
+
+    m_batch->DrawQuad(vp1, vp2, vp3, vp4);
+
+    m_font->DrawString(m_spriteBatch.get(), text.c_str(),
+        fontPos, tColor, 0.f, origin, 0.5f);
+
+    return textvec;
 }
 
 // Helper method to clear the back buffers.
@@ -266,10 +426,30 @@ void Overlay::CreateDevice()
     DX::ThrowIfFailed(device.As(&m_d3dDevice));
     DX::ThrowIfFailed(context.As(&m_d3dContext));
 
-    //
+    //  fonts
 
     m_font = std::make_unique<SpriteFont>(m_d3dDevice.Get(), L"myfile.spritefont");
     m_spriteBatch = std::make_unique<SpriteBatch>(m_d3dContext.Get());
+
+    //  rendering
+
+    m_states = std::make_unique<CommonStates>(m_d3dDevice.Get());
+
+    m_effect = std::make_unique<BasicEffect>(m_d3dDevice.Get());
+    m_effect->SetVertexColorEnabled(true);
+
+    void const* shaderByteCode;
+    size_t byteCodeLength;
+
+    m_effect->GetVertexShaderBytecode(&shaderByteCode, &byteCodeLength);
+
+    DX::ThrowIfFailed(
+        m_d3dDevice->CreateInputLayout(VertexPositionColor::InputElements,
+            VertexPositionColor::InputElementCount,
+            shaderByteCode, byteCodeLength,
+            m_inputLayout.ReleaseAndGetAddressOf()));
+
+    m_batch = std::make_unique<PrimitiveBatch<VertexPositionColor>>(m_d3dContext.Get());
 
     // TODO: Initialize device dependent objects here (independent of window size).
 }
@@ -370,6 +550,11 @@ void Overlay::CreateResources()
     // TODO: Initialize windows-size dependent objects here.
     m_fontPos.x = backBufferWidth / 2.f;
     m_fontPos.y = backBufferHeight / 2.f;
+
+    DirectX::SimpleMath::Matrix proj = DirectX::SimpleMath::Matrix::CreateOrthographicOffCenter(0.f, float(backBufferWidth), float(backBufferHeight), 0.f, 0.f, 1.f);
+    /*DirectX::SimpleMath::Matrix::CreateOrthographicOffCenter(-float(backBufferWidth / 2.f), float(backBufferWidth / 2.f),
+    -float(backBufferHeight / 2.f), float(backBufferHeight / 2.f), 0.f, 1.f);*/
+    m_effect->SetProjection(proj);
 }
 
 void Overlay::OnDeviceLost()
@@ -383,6 +568,11 @@ void Overlay::OnDeviceLost()
     m_d3dDevice.Reset();
 
     m_spriteBatch.reset();
+
+    m_states.reset();
+    m_effect.reset();
+    m_batch.reset();
+    m_inputLayout.Reset();
 
     CreateDevice();
 

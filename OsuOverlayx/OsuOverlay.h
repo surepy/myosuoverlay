@@ -44,6 +44,8 @@ struct gameplayStats {
     std::chrono::milliseconds previousDistTime;
     beatmap currentMap;
     std::vector<std::chrono::milliseconds> clicks;
+    std::uint32_t osuMapTime;
+    bool osuMapTimeLoaded = false;  //  idk if i will use
     bool clickx = false, clicky = false;
     int clickCounter = 0;
     bool streamCompanionRunning = true;
@@ -76,8 +78,12 @@ public:
 
 private:
 
+    bool loadMap(gameplayStats &gameStat);
+
     void Update(DX::StepTimer const& timer);
     void Render(gameplayStats &gameStat);
+
+    DirectX::XMVECTOR RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &fontPos, DirectX::XMVECTORF32 tColor = DirectX::Colors::White, DirectX::XMVECTORF32 bgColor = DirectX::Colors::Black, int v = 1);
 
     void Clear();
     void Present();
@@ -103,9 +109,14 @@ private:
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
 
-    //
+    //  font related
     std::unique_ptr<DirectX::SpriteFont> m_font;
-
     DirectX::SimpleMath::Vector2 m_fontPos;
     std::unique_ptr<DirectX::SpriteBatch> m_spriteBatch;
+
+    //  drawing
+    std::unique_ptr<DirectX::CommonStates> m_states;
+    std::unique_ptr<DirectX::BasicEffect> m_effect;
+    std::unique_ptr<DirectX::PrimitiveBatch<DirectX::VertexPositionColor>> m_batch;
+    Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
 };

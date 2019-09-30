@@ -127,9 +127,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     g_game->Initialize(hWnd, wr.right - wr.left, wr.bottom - wr.top);
 
-    if (FindWindow(NULL, "osu!StreamCompanion by Piotrekol") == 0)
+    if (FindWindow(NULL, L"osu!StreamCompanion by Piotrekol") == 0)
     {
-        MessageBox(NULL, "StreamCompanion is not found! things will not work as intended!", "StreamCompanion not found!", MB_ICONEXCLAMATION);
+        MessageBox(NULL, L"StreamCompanion is not found! things will not work as intended!", L"StreamCompanion not found!", MB_ICONEXCLAMATION);
     }
 
     //  init shared memory
@@ -140,6 +140,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     gameStat.mfOsuMapTime = std::unique_ptr<MappingFile>(new MappingFile("time_osu"));
     gameStat.mfOsuFileLoc = std::unique_ptr<MappingFile>(new MappingFile("osu_file_loc"));
     gameStat.mfOsuKiaiStat = std::unique_ptr<MappingFile>(new MappingFile("osu_kiai_stat"));
+
+    gameStat.currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()
+        );
+    gameStat.previousDistTime = gameStat.currentTime - std::chrono::milliseconds(999);
 
     return TRUE;
 }
