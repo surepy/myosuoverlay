@@ -55,9 +55,10 @@ public:
     std::vector<timingpoint> timingpoints;
 
     std::wstring loadedMap = L"";
-    std::uint32_t searchIndex = 0;
+    std::uint32_t currentObjectIndex = 0;
+    std::uint32_t currentTimeIndex = 0;
 
     std::uint32_t currentBpm;
-    double currentSpeed;
+    float currentSpeed;
     bool kiai;
 };

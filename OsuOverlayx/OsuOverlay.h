@@ -14,7 +14,7 @@ public:
     MappingFile(std::string map_name)
     {
         name = map_name;
-        handle = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 8 * 1024, map_name.c_str());
+        handle = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 8 * 1024, map_name.c_str()); // todo readonly
         data = reinterpret_cast<PVOID*>(MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, 8 * 1024));
     }
 
@@ -36,16 +36,28 @@ public:
 struct gameplayStats {
     std::unique_ptr<MappingFile> mfCursor;
     std::unique_ptr<MappingFile> mfKey;
+    std::unique_ptr<MappingFile> mfOsuPlayHits;
+    std::unique_ptr<MappingFile> mfOsuPlayPP;
+    std::unique_ptr<MappingFile> mfOsuPlayHP;
     std::unique_ptr<MappingFile> mfKeyStat;
     std::unique_ptr<MappingFile> mfOsuMapTime;
     std::unique_ptr<MappingFile> mfOsuFileLoc;
     std::unique_ptr<MappingFile> mfOsuKiaiStat;
+    std::unique_ptr<MappingFile> mfCurrentModsStr;
+    std::unique_ptr<MappingFile> mfCurrentOsuGMode;
+
     std::chrono::milliseconds currentTime;
     std::chrono::milliseconds previousDistTime;
+
     beatmap currentMap;
     std::vector<std::chrono::milliseconds> clicks;
-    std::uint32_t osuMapTime;
+
+    int osuMapTime;
     bool osuMapTimeLoaded = false;  //  idk if i will use
+
+    DirectX::SimpleMath::Vector2 cursorLocation;
+    double cursorSpeed = 0;
+
     bool clickx = false, clicky = false;
     int clickCounter = 0;
     bool streamCompanionRunning = true;
@@ -83,7 +95,7 @@ private:
     void Update(DX::StepTimer const& timer);
     void Render(gameplayStats &gameStat);
 
-    DirectX::XMVECTOR RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &fontPos, DirectX::XMVECTORF32 tColor = DirectX::Colors::White, DirectX::XMVECTORF32 bgColor = DirectX::Colors::Black, int v = 1);
+    DirectX::XMVECTOR RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &fontPos, DirectX::XMVECTORF32 tColor = DirectX::Colors::White, DirectX::XMVECTORF32 bgColor = DirectX::Colors::Black, int v = 1, float fontsize = 0.5f);
 
     void Clear();
     void Present();

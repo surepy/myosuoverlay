@@ -51,7 +51,11 @@ bool Overlay::loadMap(gameplayStats &gameStat)
     std::wstring osuMap = static_cast<std::wstring>(gameStat.mfOsuFileLoc->ReadToEnd());
     if (gameStat.currentMap.loadedMap.compare(osuMap) != 0)
     {
-        gameStat.currentMap.searchIndex = 0;
+        gameStat.currentMap.timingpoints.clear();
+        gameStat.currentMap.hitobjects.clear();
+
+        gameStat.currentMap.currentTimeIndex = 0;
+        gameStat.currentMap.currentObjectIndex = 0;
         try
         {
             if (!gameStat.currentMap.Parse(osuMap))
@@ -62,6 +66,8 @@ bool Overlay::loadMap(gameplayStats &gameStat)
         }
         catch (std::out_of_range)
         {
+            gameStat.currentMap.currentTimeIndex = 0;
+            gameStat.currentMap.currentObjectIndex = 0;
             return false;
         }
     }
@@ -80,6 +86,28 @@ void Overlay::Tick(gameplayStats &gameStat)
     {
         Update(m_timer);
     });
+
+    /*
+     *  Cursor location
+     *
+     *  This code is terrible
+     *
+     */
+    POINT cursorLocationCurrent;
+    if (GetCursorPos(&cursorLocationCurrent))
+    {
+        // this runs every 100 msecond
+        if ((gameStat.previousDistTime + std::chrono::milliseconds(10)) < gameStat.currentTime)
+        {
+            double dist = std::sqrt(std::pow((cursorLocationCurrent.x - gameStat.cursorLocation.x), 2) + std::pow((cursorLocationCurrent.y - gameStat.cursorLocation.y), 2));
+            gameStat.cursorSpeed = dist * 10; // 1 second displacement
+
+            gameStat.cursorLocation = DirectX::SimpleMath::Vector2(static_cast<int>(cursorLocationCurrent.x), static_cast<int>(cursorLocationCurrent.y));
+
+            //  set previous time
+            gameStat.previousDistTime = gameStat.currentTime;
+        }
+    }
 
     /*
      *  Key BPM or kps + data
@@ -123,31 +151,34 @@ void Overlay::Tick(gameplayStats &gameStat)
     if (mapLoaded)
     {
         try {
-            bool bnFound = true;
-
             //  the map is restarted. prob a better way to do this exist but /shrug
             if (gameStat.osuMapTime > std::stod(gameStat.mfOsuMapTime->ReadToEnd()) * 1000)
             {
-                gameStat.currentMap.searchIndex = 0;
+                gameStat.currentMap.currentTimeIndex = 0;
+                gameStat.currentMap.currentObjectIndex = 0;
             }
 
             gameStat.osuMapTime = static_cast<int>(std::stod(gameStat.mfOsuMapTime->ReadToEnd()) * 1000);
 
-            for (uint32_t i = gameStat.currentMap.searchIndex; i < gameStat.currentMap.timingpoints.size() && bnFound; i++)
+            for (uint32_t i = gameStat.currentMap.currentTimeIndex; i < gameStat.currentMap.timingpoints.size() && gameStat.osuMapTime >= gameStat.currentMap.timingpoints[i].offset; i++)
             {
-                if (gameStat.osuMapTime >= gameStat.currentMap.timingpoints[i].offset)
-                {
-                    gameStat.currentMap.currentBpm = static_cast<int>(60000 / gameStat.currentMap.timingpoints[i].ms_per_beat);
-                    gameStat.currentMap.currentSpeed = gameStat.currentMap.timingpoints[i].velocity;
-                    gameStat.currentMap.kiai = gameStat.currentMap.timingpoints[i].kiai;
-                    gameStat.currentMap.searchIndex = i;
-                    bnFound = false;
-                }
+                gameStat.currentMap.currentBpm = static_cast<int>(60000 / gameStat.currentMap.timingpoints[i].ms_per_beat);
+                gameStat.currentMap.currentSpeed = gameStat.currentMap.timingpoints[i].velocity;
+                gameStat.currentMap.kiai = gameStat.currentMap.timingpoints[i].kiai;
+                gameStat.currentMap.currentTimeIndex = i;
             }
+
+            for (uint32_t i = gameStat.currentMap.currentObjectIndex; i < gameStat.currentMap.hitobjects.size() && gameStat.osuMapTime >= gameStat.currentMap.hitobjects[i].start_time; i++)
+            {
+                gameStat.currentMap.currentObjectIndex = i;
+            }
+
             gameStat.osuMapTimeLoaded = true;
         }
         catch (std::invalid_argument)
         {
+            gameStat.currentMap.currentTimeIndex = 0;
+            gameStat.currentMap.currentObjectIndex = 0;
             gameStat.osuMapTimeLoaded = false;
         }
     }
@@ -219,13 +250,134 @@ void Overlay::Render(gameplayStats &gameStat)
 
     result = RenderStatSquare(textString, origin, m_fontPos);
 
+    /*
+     *  skip map diff + map name for now.
+     */
+
+    textString = std::wstring(gameStat.mfOsuPlayHits->ReadToEnd()).size() == 3 ? L"" : static_cast<std::wstring>(gameStat.mfOsuPlayHits->ReadToEnd());
+
+    origin.x = XMVectorGetX(m_font->MeasureString(textString.c_str()));
+
+    m_fontPos.x = static_cast<float>(m_outputWidth);    // all the way to right
+    m_fontPos.y -= 46;  //  skip 2 boxes from bottom.
+
+    result = RenderStatSquare(textString, origin, m_fontPos, Colors::LightGreen, Colors::Black, 2);
+
+    /*
+     *  Cursor stuff (stat)
+     */
+
+    textString = std::wstring(L"x: ") + std::to_wstring(static_cast<int>(gameStat.cursorLocation.x)) + std::wstring(L" y: ") + std::to_wstring(static_cast<int>(gameStat.cursorLocation.y)) + std::wstring(L" vel: ") + std::to_wstring((int)round(gameStat.cursorSpeed)) + std::wstring(L" p/s");
+
+    origin.x = XMVectorGetX(m_font->MeasureString(textString.c_str()));
+
+    m_fontPos.y -= 18;  //  go up a box. it's 21px with this font + scale.
+
+    result = RenderStatSquare(textString, origin, m_fontPos, Colors::DeepSkyBlue, Colors::Black, 2, 0.45f);
+
+    /*
+     *  current HP
+     */
+
+    textString = std::wstring(gameStat.mfOsuPlayHP->ReadToEnd()).size() == 3 ? L"" : static_cast<std::wstring>(gameStat.mfOsuPlayHP->ReadToEnd());
+
+    origin.x = XMVectorGetX(m_font->MeasureString(textString.c_str()));
+
+    m_fontPos.y -= 21;  //  go up a box. magic number lol
+
+    result = RenderStatSquare(textString, origin, m_fontPos, Colors::LightSkyBlue, Colors::Black, 2, 0.5f);
+
+    /*
+     *  current pp
+     */
+
+    textString = std::wstring(gameStat.mfOsuPlayPP->ReadToEnd()).size() == 3 ? L"" : static_cast<std::wstring>(gameStat.mfOsuPlayPP->ReadToEnd());
+
+    origin.x = XMVectorGetX(m_font->MeasureString(textString.c_str()));
+
+    m_fontPos.y -= 24;  //  go up a box. magic number lol
+
+    result = RenderStatSquare(textString, origin, m_fontPos, Colors::Yellow, Colors::Black, 2, 0.55f);
+
+    /*
+     *  hidden assistant - time till next hitobject
+     */
+     /*
+     m_font->DrawString(m_spriteBatch.get(), std::to_string(gameStat.osuMapTime).c_str(),
+         DirectX::SimpleMath::Vector2(0.f, 0.f),
+         Colors::White, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 1.f);*/
+
+    if (std::wstring(gameStat.mfCurrentOsuGMode->ReadToEnd()).compare(L"Osu") == 0 && gameStat.osuMapTimeLoaded && std::wstring(gameStat.mfCurrentModsStr->ReadToEnd()).find(L"HD") != std::string::npos
+        && gameStat.currentMap.currentObjectIndex < gameStat.currentMap.hitobjects.size() - 1 && gameStat.osuMapTimeLoaded // temp
+        )
+    {
+        /*
+        textString = std::to_wstring(gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 1].start_time - gameStat.osuMapTime); //  time till next note.
+
+        m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
+            DirectX::SimpleMath::Vector2(
+                252 + gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 1].x * 1.5, // padding + pixel
+                64 + 16 + gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 1].y * 1.5
+            ),
+            Colors::White, 0.f, m_font->MeasureString(textString.c_str()) / 2.f, 0.3f);*/
+
+        for (std::uint32_t i = gameStat.currentMap.currentObjectIndex + 1; i < gameStat.currentMap.hitobjects.size() && 600 >= gameStat.currentMap.hitobjects[i].start_time - gameStat.osuMapTime; i++)
+        {
+            textString = std::to_wstring(i - gameStat.currentMap.currentObjectIndex);
+            //std::to_wstring(gameStat.currentMap.hitobjects[i].start_time - gameStat.osuMapTime);
+
+            if (i == gameStat.currentMap.currentObjectIndex + 1)
+            {
+                textString = L"> " + textString + L" <";
+
+                // draw the text- circle
+                m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
+                    DirectX::SimpleMath::Vector2(
+                        256 + gameStat.currentMap.hitobjects[i].x * 1.5f, // padding + pixel
+                        64 + 16 + gameStat.currentMap.hitobjects[i].y * 1.5f
+                    ),
+                    Colors::Yellow, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
+
+                m_font->DrawString(m_spriteBatch.get(), std::wstring(L" - " + std::to_wstring(gameStat.currentMap.hitobjects[i].start_time - gameStat.osuMapTime)).c_str(),
+                    DirectX::SimpleMath::Vector2(
+                        256 + gameStat.currentMap.hitobjects[i].x * 1.5f + (XMVectorGetX(m_font->MeasureString(textString.c_str())) * 0.3f),
+                        64 + 16 + gameStat.currentMap.hitobjects[i].y * 1.5f
+                    ),
+                    Colors::Yellow, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 0.3f);
+            }
+            else
+            {
+                m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
+                    DirectX::SimpleMath::Vector2(
+                        256 + gameStat.currentMap.hitobjects[i].x * 1.5f, // padding + pixel
+                        64 + 16 + gameStat.currentMap.hitobjects[i].y * 1.5f
+                    ),
+                    Colors::White, 0.f, m_font->MeasureString(textString.c_str()) * 0.5f, 0.5f);
+
+                m_font->DrawString(m_spriteBatch.get(), std::wstring(L" - " + std::to_wstring(gameStat.currentMap.hitobjects[i].start_time - gameStat.osuMapTime)).c_str(),
+                    DirectX::SimpleMath::Vector2(
+                        256 + gameStat.currentMap.hitobjects[i].x * 1.5 + (XMVectorGetX(m_font->MeasureString(textString.c_str())) * 0.3f),
+                        64 + 16 + gameStat.currentMap.hitobjects[i].y * 1.5f
+                    ),
+                    Colors::White, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 0.3f);
+            }
+
+            /*m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
+                DirectX::SimpleMath::Vector2(
+                    252 + gameStat.currentMap.hitobjects[i].x * 1.5, // padding + pixel
+                    64 + 16 + gameStat.currentMap.hitobjects[i].y * 1.5
+                ),
+                Colors::White, 0.f, m_font->MeasureString(textString.c_str()) / 2.f, 0.3f);*/
+        }
+    }
+
     m_batch->End();
     m_spriteBatch->End();
 
     Present();
 }
 
-XMVECTOR Overlay::RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &fontPos, DirectX::XMVECTORF32 tColor, DirectX::XMVECTORF32 bgColor, int v)
+XMVECTOR Overlay::RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &fontPos, DirectX::XMVECTORF32 tColor, DirectX::XMVECTORF32 bgColor, int v, float fontsize)
 {
     /* we're gonna draw this like:
      0,0
@@ -251,26 +403,26 @@ XMVECTOR Overlay::RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vect
     {
     case 1:
         v1 = DirectX::SimpleMath::Vector3(fontPos.x, fontPos.y, 0.f);
-        v2 = DirectX::SimpleMath::Vector3(fontPos.x + (XMVectorGetX(textvec) / 2.f) + 3, fontPos.y, 0.f);
-        v3 = DirectX::SimpleMath::Vector3(fontPos.x + (XMVectorGetX(textvec) / 2.f) + 3, fontPos.y + (XMVectorGetY(textvec) / 2.f), 0.f);
-        v4 = DirectX::SimpleMath::Vector3(fontPos.x, fontPos.y + (XMVectorGetY(textvec) / 2.f), 0.f);
+        v2 = DirectX::SimpleMath::Vector3(fontPos.x + (XMVectorGetX(textvec) * fontsize) + 3, fontPos.y, 0.f);
+        v3 = DirectX::SimpleMath::Vector3(fontPos.x + (XMVectorGetX(textvec) * fontsize) + 3, fontPos.y + (XMVectorGetY(textvec) * fontsize), 0.f);
+        v4 = DirectX::SimpleMath::Vector3(fontPos.x, fontPos.y + (XMVectorGetY(textvec) * fontsize), 0.f);
         break;
     case 2:
-        v1 = DirectX::SimpleMath::Vector3(fontPos.x - (XMVectorGetX(textvec) / 2.f), fontPos.y, 0.f);
+        v1 = DirectX::SimpleMath::Vector3(fontPos.x - (XMVectorGetX(textvec) * fontsize), fontPos.y, 0.f);
         v2 = DirectX::SimpleMath::Vector3(fontPos.x + 3, fontPos.y, 0.f);
-        v3 = DirectX::SimpleMath::Vector3(fontPos.x + 3, fontPos.y + (XMVectorGetY(textvec) / 2.f), 0.f);
-        v4 = DirectX::SimpleMath::Vector3(fontPos.x - (XMVectorGetX(textvec) / 2.f), fontPos.y + (XMVectorGetY(textvec) / 2.f), 0.f);
+        v3 = DirectX::SimpleMath::Vector3(fontPos.x + 3, fontPos.y + (XMVectorGetY(textvec) * fontsize), 0.f);
+        v4 = DirectX::SimpleMath::Vector3(fontPos.x - (XMVectorGetX(textvec) * fontsize), fontPos.y + (XMVectorGetY(textvec) * fontsize), 0.f);
         break;
     case 3:
-        v1 = DirectX::SimpleMath::Vector3(fontPos.x - (XMVectorGetX(textvec) / 2.f), fontPos.y - (XMVectorGetY(textvec) / 2.f), 0.f);
-        v2 = DirectX::SimpleMath::Vector3(fontPos.x + 3, fontPos.y - (XMVectorGetY(textvec) / 2.f), 0.f);
+        v1 = DirectX::SimpleMath::Vector3(fontPos.x - (XMVectorGetX(textvec) * fontsize), fontPos.y - (XMVectorGetY(textvec) * fontsize), 0.f);
+        v2 = DirectX::SimpleMath::Vector3(fontPos.x + 3, fontPos.y - (XMVectorGetY(textvec) * fontsize), 0.f);
         v3 = DirectX::SimpleMath::Vector3(fontPos.x + 3, fontPos.y, 0.f);
-        v4 = DirectX::SimpleMath::Vector3(fontPos.x - (XMVectorGetX(textvec) / 2.f), fontPos.y + (XMVectorGetY(textvec) / 2.f), 0.f);
+        v4 = DirectX::SimpleMath::Vector3(fontPos.x - (XMVectorGetX(textvec) * fontsize), fontPos.y + (XMVectorGetY(textvec) * fontsize), 0.f);
         break;
     case 4:
-        v1 = DirectX::SimpleMath::Vector3(fontPos.x, fontPos.y - (XMVectorGetY(textvec) / 2.f), 0.f);;
-        v2 = DirectX::SimpleMath::Vector3(fontPos.x + (XMVectorGetX(textvec) / 2.f) + 3, fontPos.y - (XMVectorGetY(textvec) / 2.f), 0.f);;
-        v3 = DirectX::SimpleMath::Vector3(fontPos.x + (XMVectorGetX(textvec) / 2.f) + 3, fontPos.y, 0.f);
+        v1 = DirectX::SimpleMath::Vector3(fontPos.x, fontPos.y - (XMVectorGetY(textvec) * fontsize), 0.f);;
+        v2 = DirectX::SimpleMath::Vector3(fontPos.x + (XMVectorGetX(textvec) * fontsize) + 3, fontPos.y - (XMVectorGetY(textvec) * fontsize), 0.f);;
+        v3 = DirectX::SimpleMath::Vector3(fontPos.x + (XMVectorGetX(textvec) * fontsize) + 3, fontPos.y, 0.f);
         v4 = DirectX::SimpleMath::Vector3(fontPos.x, fontPos.y, 0.f);
         break;
     }
@@ -283,7 +435,7 @@ XMVECTOR Overlay::RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vect
     m_batch->DrawQuad(vp1, vp2, vp3, vp4);
 
     m_font->DrawString(m_spriteBatch.get(), text.c_str(),
-        fontPos, tColor, 0.f, origin, 0.5f);
+        fontPos, tColor, 0.f, origin, fontsize);
 
     return textvec;
 }

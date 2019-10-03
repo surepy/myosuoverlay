@@ -134,12 +134,17 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     //  init shared memory
 
-    gameStat.mfCursor = std::unique_ptr<MappingFile>(new MappingFile("cursor_loc"));
-    gameStat.mfKey = std::unique_ptr<MappingFile>(new MappingFile("kps_bpm"));
-    gameStat.mfKeyStat = std::unique_ptr<MappingFile>(new MappingFile("key_status"));
-    gameStat.mfOsuMapTime = std::unique_ptr<MappingFile>(new MappingFile("time_osu"));
-    gameStat.mfOsuFileLoc = std::unique_ptr<MappingFile>(new MappingFile("osu_file_loc"));
-    gameStat.mfOsuKiaiStat = std::unique_ptr<MappingFile>(new MappingFile("osu_kiai_stat"));
+    gameStat.mfCursor = std::unique_ptr<MappingFile>(new MappingFile("cursor_loc"));                // unused.. why is this here?
+    gameStat.mfKey = std::unique_ptr<MappingFile>(new MappingFile("kps_bpm"));                      // unused.. why is this here? 2
+    gameStat.mfKeyStat = std::unique_ptr<MappingFile>(new MappingFile("key_status"));               // unused.. why is this here? 3
+    gameStat.mfOsuMapTime = std::unique_ptr<MappingFile>(new MappingFile("time_osu"));              // used, critical
+    gameStat.mfOsuFileLoc = std::unique_ptr<MappingFile>(new MappingFile("osu_file_loc"));          // used, critical
+    gameStat.mfOsuKiaiStat = std::unique_ptr<MappingFile>(new MappingFile("osu_kiai_stat"));        // unused until i pull data from osu itself
+    gameStat.mfOsuPlayHits = std::unique_ptr<MappingFile>(new MappingFile("livepp_hits"));          // relayed
+    gameStat.mfOsuPlayHP = std::unique_ptr<MappingFile>(new MappingFile("np_hp"));                  // relayed
+    gameStat.mfOsuPlayPP = std::unique_ptr<MappingFile>(new MappingFile("livepp_current_pp"));      // relayed
+    gameStat.mfCurrentModsStr = std::unique_ptr<MappingFile>(new MappingFile("current_mods"));      // relayed (todo) and used for HD visual
+    gameStat.mfCurrentOsuGMode = std::unique_ptr<MappingFile>(new MappingFile("current_osu_mode"));      // used for wtf mod are we playing
 
     gameStat.currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()
