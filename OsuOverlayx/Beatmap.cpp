@@ -159,3 +159,13 @@ bool beatmap::Parse(std::wstring filename) {
 
     return true;
 }
+
+void beatmap::Unload()
+{
+    this->timingpoints.clear();
+    this->hitobjects.clear();
+    this->currentTimeIndex = 0;
+    this->currentObjectIndex = 0;
+    this->circleCombo = 0;
+    this->loadedMap = L"";
+}

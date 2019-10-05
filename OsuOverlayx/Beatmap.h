@@ -31,6 +31,10 @@ struct hitobject {
     bool IsSpinner() const {
         return (type & HITOBJECT_SPINNER) == HITOBJECT_SPINNER;
     }
+
+    bool IsNewCombo() const {
+        return (type & HITOBJECT_NEW_COMBO) == HITOBJECT_NEW_COMBO;
+    }
 };
 
 struct timingpoint {
@@ -51,12 +55,15 @@ private:
 public:
     bool Parse(std::wstring filename);
 
+    void Unload();
+
     std::vector<hitobject> hitobjects;
     std::vector<timingpoint> timingpoints;
 
     std::wstring loadedMap = L"";
     std::uint32_t currentObjectIndex = 0;
     std::uint32_t currentTimeIndex = 0;
+    std::uint32_t circleCombo = 0;
 
     std::uint32_t currentBpm;
     float currentSpeed;

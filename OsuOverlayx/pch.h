@@ -76,6 +76,8 @@
 #include "WICTextureLoader.h"
 #include <wrl.h>
 #include <array>
+#include <wchar.h>
+#include <time.h>
 #include <exception>
 #include <list>
 #include <mutex>
