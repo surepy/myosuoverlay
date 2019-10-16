@@ -42,6 +42,7 @@ struct timingpoint {
     float velocity;
     float ms_per_beat;
     bool kiai;
+    bool inherited;
 };
 
 class beatmap {
@@ -62,8 +63,9 @@ public:
 
     std::wstring loadedMap = L"";
     std::uint32_t currentObjectIndex = 0;
+    std::uint32_t currentUninheritTimeIndex = 0;
     std::uint32_t currentTimeIndex = 0;
-    std::uint32_t circleCombo = 0;
+    std::uint32_t newComboIndex = 0;
 
     std::uint32_t currentBpm;
     float currentSpeed;

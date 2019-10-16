@@ -36,6 +36,7 @@ inline bool beatmap::ParseTimingPoint(std::vector<std::wstring>& values) {
 
     int32_t offset = std::stoi(values.at(0));
     float ms_per_beat;
+    bool inherited = false;
 
     try {
         ms_per_beat = std::stof(values.at(1));
@@ -48,6 +49,7 @@ inline bool beatmap::ParseTimingPoint(std::vector<std::wstring>& values) {
     float velocity = 1.f;
 
     if (ms_per_beat < 0) {
+        inherited = true;
         velocity = abs(100 / ms_per_beat);
 
         if (last_ms_per_beat != 0) {
@@ -64,6 +66,7 @@ inline bool beatmap::ParseTimingPoint(std::vector<std::wstring>& values) {
     new_timingpoint.velocity = velocity;
     new_timingpoint.ms_per_beat = ms_per_beat;
     new_timingpoint.kiai = kiai;
+    new_timingpoint.inherited = inherited;
 
     this->timingpoints.push_back(new_timingpoint);
 
@@ -166,6 +169,8 @@ void beatmap::Unload()
     this->hitobjects.clear();
     this->currentTimeIndex = 0;
     this->currentObjectIndex = 0;
-    this->circleCombo = 0;
+    this->newComboIndex = 0;
     this->loadedMap = L"";
+    this->newComboIndex = 0;
+    this->currentUninheritTimeIndex = 0;
 }

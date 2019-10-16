@@ -29,7 +29,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_ int       nCmdShow)
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
-    UNREFERENCED_PARAMETER(lpCmdLine);
 
     StringCchCopyW(szWindowClass, 11, L"OsuOverlay");
     StringCchCopyW(szTitle, 22, L"sleepy\'s osu overlay!");
@@ -40,6 +39,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     {
         return FALSE;
     }
+
+    std::wstring arg = std::wstring(lpCmdLine);
+
+    g_game->SetName(arg == L"" ? L"surepyw" : arg);
 
     MSG msg = {};
     while (WM_QUIT != msg.message)

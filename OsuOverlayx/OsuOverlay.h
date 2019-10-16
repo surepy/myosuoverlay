@@ -33,6 +33,14 @@ public:
     }
 };
 
+enum gameMode {
+    STANDARD,
+    MANIA,
+    TAIKO,
+    CATCH,
+    UNKNOWN
+};
+
 struct gameplayStats {
     std::unique_ptr<MappingFile> mfCursor;
     std::unique_ptr<MappingFile> mfKey;
@@ -53,6 +61,7 @@ struct gameplayStats {
     std::vector<std::chrono::milliseconds> clicks;
 
     int osuMapTime;
+    gameMode gameMode = gameMode::STANDARD;
     bool osuMapTimeLoaded = false;  //  idk if i will use
 
     DirectX::SimpleMath::Vector2 cursorLocation;
@@ -60,6 +69,7 @@ struct gameplayStats {
 
     bool clickx = false, clicky = false;
     int clickCounter = 0;
+    int beatIndex = 0;
     bool streamCompanionRunning = true;
 };
 
@@ -88,6 +98,8 @@ public:
     // Properties
     void GetDefaultSize(int& width, int& height) const;
 
+    void SetName(std::wstring name);
+
 private:
 
     bool loadMap(gameplayStats &gameStat);
@@ -96,6 +108,7 @@ private:
     void Render(gameplayStats &gameStat);
 
     DirectX::XMVECTOR RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &fontPos, DirectX::XMVECTORF32 tColor = DirectX::Colors::White, DirectX::XMVECTORF32 bgColor = DirectX::Colors::Black, int v = 1, float fontsize = 0.5f);
+    void RenderAssistant(gameplayStats &gameStat);
 
     void Clear();
     void Present();
@@ -131,4 +144,6 @@ private:
     std::unique_ptr<DirectX::BasicEffect> m_effect;
     std::unique_ptr<DirectX::PrimitiveBatch<DirectX::VertexPositionColor>> m_batch;
     Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
+
+    std::wstring user;
 };
