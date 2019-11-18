@@ -34,10 +34,10 @@ public:
 };
 
 enum gameMode {
-    STANDARD,
-    MANIA,
-    TAIKO,
-    CATCH,
+    STANDARD = 0,
+    TAIKO = 1,
+    CATCH = 2,
+    MANIA = 3,
     UNKNOWN
 };
 
@@ -59,6 +59,8 @@ struct gameplayStats {
 
     beatmap currentMap;
     std::vector<std::chrono::milliseconds> clicks;
+
+    hitobject *getCurrentHitObject() { return this->currentMap.getCurrentHitObject(); };
 
     int osuMapTime;
     gameMode gameMode = gameMode::STANDARD;
@@ -107,6 +109,7 @@ private:
     void Update(DX::StepTimer const& timer);
     void Render(gameplayStats &gameStat);
 
+    void RenderStatTexts(gameplayStats &gameStat);
     DirectX::XMVECTOR RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &fontPos, DirectX::XMVECTORF32 tColor = DirectX::Colors::White, DirectX::XMVECTORF32 bgColor = DirectX::Colors::Black, int v = 1, float fontsize = 0.5f);
     void RenderAssistant(gameplayStats &gameStat);
 

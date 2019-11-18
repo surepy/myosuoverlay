@@ -8,7 +8,13 @@ enum ObjectType : uint8_t {
     HITOBJECT_CIRCLE = 1,
     HITOBJECT_SLIDER = 2,
     HITOBJECT_NEW_COMBO = 4,
-    HITOBJECT_SPINNER = 8
+    HITOBJECT_SPINNER = 8,
+    HITOBJECT_MANIA_HOLD = 128
+};
+
+struct slidercurve {
+    uint16_t x;
+    uint16_t y;
 };
 
 struct hitobject {
@@ -28,6 +34,10 @@ struct hitobject {
         return (type & HITOBJECT_SLIDER) == HITOBJECT_SLIDER;
     }
 
+    bool IsHold() const {
+        return (type & HITOBJECT_MANIA_HOLD) == HITOBJECT_MANIA_HOLD;
+    }
+
     bool IsSpinner() const {
         return (type & HITOBJECT_SPINNER) == HITOBJECT_SPINNER;
     }
@@ -35,6 +45,9 @@ struct hitobject {
     bool IsNewCombo() const {
         return (type & HITOBJECT_NEW_COMBO) == HITOBJECT_NEW_COMBO;
     }
+
+    std::vector<slidercurve> slidercurves;
+    std::wstring slidertype;
 };
 
 struct timingpoint {
@@ -47,26 +60,84 @@ struct timingpoint {
 
 class beatmap {
 private:
-    float slider_multiplier;
-
     bool GetTimingPointFromOffset(uint32_t offset, timingpoint& target_point);
+
     bool ParseTimingPoint(std::vector<std::wstring>& values);
     bool ParseHitObject(std::vector<std::wstring>& values);
     bool ParseDifficultySettings(std::wstring difficulty_line);
+    bool ParseGeneral(std::wstring difficulty_line);
 public:
     bool Parse(std::wstring filename);
 
     void Unload();
 
+    // the map itself
+public:
+    int Mode;
+
+    float CircleSize; //  note: this is amount of rows in mania.
+    float SliderMultiplier;
+
     std::vector<hitobject> hitobjects;
     std::vector<timingpoint> timingpoints;
 
+    std::vector<hitobject> hitobjects_sorted[10];   // mostly for mania
+
+    // for use in actually drawing
+public:
+    /*
+        standard macros
+    */
+    hitobject* getCurrentHitObject() {
+        return &this->hitobjects[this->currentObjectIndex];
+    };
+
+    hitobject* getNextHitObject() {
+        try {
+            return &this->hitobjects.at(this->currentObjectIndex + 1);
+        }
+        catch (const std::out_of_range& e) { return nullptr; }
+    };
+
+    hitobject* getUpcomingHitObject() {
+        try {
+            return &this->hitobjects.at(this->currentObjectIndex + 2);
+        }
+        catch (const std::out_of_range& e) { return nullptr; }
+    };
+
+    /*
+        mania macros
+    */
+    hitobject* getCurrentHitObject(int row)
+    {
+        return &this->hitobjects_sorted[row][this->currentObjectIndex_sorted[row]];
+    };
+
+    hitobject* getNextHitObject(int row)
+    {
+        try {
+            return &this->hitobjects_sorted[row].at(this->currentObjectIndex_sorted[row] + 1);
+        }
+        catch (const std::out_of_range& e) { return nullptr; }
+    };
+
+    hitobject* getUpcomingHitObject(int row)
+    {
+        try {
+            return &this->hitobjects_sorted[row].at(this->currentObjectIndex_sorted[row] + 2);
+        }
+        catch (const std::out_of_range& e) { return nullptr; }
+    };
+
+    timingpoint* getCurrentTimingPoint() { return &this->timingpoints[this->currentTimeIndex]; };
+
     std::wstring loadedMap = L"";
     std::uint32_t currentObjectIndex = 0;
+    std::uint32_t currentObjectIndex_sorted[10]; // mania only
     std::uint32_t currentUninheritTimeIndex = 0;
     std::uint32_t currentTimeIndex = 0;
     std::uint32_t newComboIndex = 0;
-
     std::uint32_t currentBpm;
     float currentSpeed;
     bool kiai;

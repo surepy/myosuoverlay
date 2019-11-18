@@ -1,4 +1,6 @@
 #include "Beatmap.h"
+#include "OsuOverlay.h"
+#include <algorithm>
 
 inline bool split_line(std::wstring line, wchar_t delimiter, std::vector<std::wstring>& result) {
     std::wstringstream input_line(line);
@@ -82,22 +84,59 @@ inline bool beatmap::ParseHitObject(std::vector<std::wstring>& values) {
     new_hitobject.start_time = std::stoi(values.at(2));
 
     if (new_hitobject.IsCircle()) {
-        new_hitobject.end_time = new_hitobject.start_time + 2;
+        new_hitobject.end_time = new_hitobject.start_time;
+
+        if (Mode == gameMode::MANIA)
+        {
+            int row = static_cast<int>(std::clamp(std::floor(new_hitobject.x * this->CircleSize / 512), 0.f, CircleSize - 1));
+            this->hitobjects_sorted[row].push_back(new_hitobject);
+        }
     }
     else if (new_hitobject.IsSpinner()) {
         new_hitobject.end_time = std::stoi(values.at(5));
     }
     else if (new_hitobject.IsSlider()) {
+        std::vector<std::wstring> objectparams;
+
+        split_line(values.at(5), L'|', objectparams);
+
+        new_hitobject.slidertype = objectparams.at(0);
+
+        for (int i = 1; i < objectparams.size(); i++)
+        {
+            std::vector<std::wstring> point;
+            slidercurve new_slidercurve;
+
+            split_line(objectparams.at(i), L':', point);
+
+            new_slidercurve.x = std::stoi(point.at(0));
+            new_slidercurve.y = std::stoi(point.at(1));
+
+            new_hitobject.slidercurves.push_back(new_slidercurve);
+        }
+
         new_hitobject.repeat = std::stoi(values.at(6));
         new_hitobject.pixel_length = std::stoi(values.at(7));
 
         timingpoint object_timingpoint;
 
         if (this->GetTimingPointFromOffset(new_hitobject.start_time, object_timingpoint)) {
-            float px_per_beat = this->slider_multiplier * 100 * object_timingpoint.velocity;
+            float px_per_beat = this->SliderMultiplier * 100 * object_timingpoint.velocity;
             float beats_num = (new_hitobject.pixel_length * new_hitobject.repeat) / px_per_beat;
-            new_hitobject.end_time = static_cast<int>(new_hitobject.start_time + ceil(beats_num * object_timingpoint.ms_per_beat));
+            new_hitobject.end_time = static_cast<int32_t>(new_hitobject.start_time + ceil(beats_num * object_timingpoint.ms_per_beat));
         }
+    }
+    else if (new_hitobject.IsHold())
+    {
+        // mania only
+        std::vector<std::wstring> objectparams;
+
+        split_line(values.at(5), L':', objectparams);
+
+        new_hitobject.end_time = std::stoi(objectparams[0]);
+
+        int row = static_cast<int>(std::clamp(std::floor(new_hitobject.x * this->CircleSize / 512), 0.f, CircleSize - 1));
+        this->hitobjects_sorted[row].push_back(new_hitobject);
     }
 
     this->hitobjects.push_back(new_hitobject);
@@ -105,12 +144,27 @@ inline bool beatmap::ParseHitObject(std::vector<std::wstring>& values) {
     return true;
 }
 
+inline bool beatmap::ParseGeneral(std::wstring difficulty_line) {
+    std::vector<std::wstring> values;
+
+    if (split_line(difficulty_line, ':', values)) {
+        if (!_wcsicmp(values[0].c_str(), L"Mode")) {
+            this->Mode = std::stoi(values[1]);
+        }
+    }
+
+    return true;
+};
+
 inline bool beatmap::ParseDifficultySettings(std::wstring difficulty_line) {
     std::vector<std::wstring> values;
 
     if (split_line(difficulty_line, ':', values)) {
         if (!_wcsicmp(values[0].c_str(), L"slidermultiplier")) {
-            this->slider_multiplier = std::stof(values[1]);
+            this->SliderMultiplier = std::stof(values[1]);
+        }
+        else if (!_wcsicmp(values[0].c_str(), L"CircleSize")) {
+            this->CircleSize = std::stof(values[1]);
         }
     }
 
@@ -138,7 +192,11 @@ bool beatmap::Parse(std::wstring filename) {
             continue;
         }
 
-        if (!current_section.compare(L"Difficulty")) {
+        if (!current_section.compare(L"General"))
+        {
+            this->ParseGeneral(current_line);
+        }
+        else if (!current_section.compare(L"Difficulty")) {
             this->ParseDifficultySettings(current_line);
         }
         else {
@@ -167,8 +225,19 @@ void beatmap::Unload()
 {
     this->timingpoints.clear();
     this->hitobjects.clear();
+    for (std::vector<hitobject> &row : this->hitobjects_sorted)
+    {
+        row.clear();
+    }
+
+    for (uint32_t &i : currentObjectIndex_sorted)
+    {
+        i = 0;
+    }
+
     this->currentTimeIndex = 0;
     this->currentObjectIndex = 0;
+    //     this->currentObjectMiscIndex = 0;
     this->newComboIndex = 0;
     this->loadedMap = L"";
     this->newComboIndex = 0;
