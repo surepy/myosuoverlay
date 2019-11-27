@@ -199,9 +199,12 @@
     <ClInclude Include="directXTK\Src\SDKMesh.h" />
     <ClInclude Include="directXTK\Src\SharedResourcePool.h" />
     <ClInclude Include="directXTK\Src\vbo.h" />
+    <ClInclude Include="OsuGame.h" />
     <ClInclude Include="OsuOverlay.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="Signatures.h" />
     <ClInclude Include="StepTimer.h" />
+    <ClInclude Include="Utilities.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="directXTK\Inc\SimpleMath.inl" />

@@ -91,6 +91,10 @@
 #include <stdint.h>
 #include <wincodec.h>
 
+#include "OsuOverlay.h"
+#include "OsuGame.h"
+#include "Utilities.h"
+
 #pragma comment(lib,"d3d11.lib")
 
 namespace DX

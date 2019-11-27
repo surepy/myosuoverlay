@@ -254,6 +254,15 @@
     <ClInclude Include="directXTK\Src\pch.h">
       <Filter>DirectXTK\Source FIles</Filter>
     </ClInclude>
+    <ClInclude Include="Signatures.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OsuGame.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="directXTK\Inc\SimpleMath.inl">

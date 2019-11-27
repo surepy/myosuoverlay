@@ -3,7 +3,7 @@
 //
 
 #include "pch.h"
-#include "OsuOverlay.h"
+#include "Signatures.h"
 
 extern void ExitGame();
 
@@ -51,9 +51,9 @@ void Overlay::SetName(std::wstring name)
     user = name;
 }
 
-bool Overlay::loadMap(gameplayStats &gameStat)
+bool Overlay::loadMap(osuGame &gameStat)  //  refactor todo?
 {
-    std::wstring osuMap = static_cast<std::wstring>(gameStat.mfOsuFileLoc->ReadToEnd());
+    std::wstring osuMap = static_cast<std::wstring>(gameStat.mfOsuFileLoc->ReadToEnd()); // TODO get directly from osu
     if (gameStat.currentMap.loadedMap.compare(osuMap) != 0)
     {
         gameStat.osuMapTimeLoaded = false;
@@ -75,13 +75,16 @@ bool Overlay::loadMap(gameplayStats &gameStat)
 }
 
 // Executes the basic game loop.
-void Overlay::Tick(gameplayStats &gameStat)
+void Overlay::Tick(osuGame &gameStat)
 {
     bool mapLoaded = loadMap(gameStat);
     gameStat.currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()
         );
-    gameStat.streamCompanionRunning = FindWindow(NULL, L"osu!StreamCompanion by Piotrekol") != 0;
+
+    gameStat.CheckLoaded();
+
+    gameStat.bStreamCompanionRunning = FindWindow(NULL, L"osu!StreamCompanion by Piotrekol") != 0;
 
     m_timer.Tick([&]()
     {
@@ -98,7 +101,7 @@ void Overlay::Tick(gameplayStats &gameStat)
     if (GetCursorPos(&cursorLocationCurrent))
     {
         // this runs every 100 msecond
-        if ((gameStat.previousDistTime + std::chrono::milliseconds(10)) < gameStat.currentTime)
+        if ((gameStat.previousDistTime + std::chrono::milliseconds(50)) < gameStat.currentTime)
         {
             double dist = std::sqrt(std::pow((cursorLocationCurrent.x - gameStat.cursorLocation.x), 2) + std::pow((cursorLocationCurrent.y - gameStat.cursorLocation.y), 2));
             gameStat.cursorSpeed = dist * 10; // 1 second displacement
@@ -151,11 +154,14 @@ void Overlay::Tick(gameplayStats &gameStat)
         gameStat.clicky = false;
     }
 
+    std::int32_t osu_time;
+    ReadProcessMemory(gameStat.hOsu, LPCVOID(gameStat.pOsuMapTime), &osu_time, sizeof std::int32_t, nullptr);
+
     if (mapLoaded)
     {
         try {
             //  the map is restarted. prob a better way to do this exist but /shrug
-            if (gameStat.osuMapTime > std::stod(gameStat.mfOsuMapTime->ReadToEnd()) * 1000)
+            if (gameStat.osuMapTime > osu_time)// std::stod(gameStat.mfOsuMapTime->ReadToEnd()) * 1000)
             {
                 gameStat.currentMap.currentUninheritTimeIndex = 0;
                 gameStat.currentMap.currentTimeIndex = 0;
@@ -167,16 +173,18 @@ void Overlay::Tick(gameplayStats &gameStat)
                 }
             }
 
-            gameStat.osuMapTime = static_cast<int>(std::stod(gameStat.mfOsuMapTime->ReadToEnd()) * 1000);
+            //streamcompanion legacy
+            //= static_cast<int>(std::stod(gameStat.mfOsuMapTime->ReadToEnd()) * 1000);
+            gameStat.osuMapTime = osu_time;
 
             if (gameStat.osuMapTime && gameStat.osuMapTime > 0) {
-                for (uint32_t i = gameStat.currentMap.currentTimeIndex; i < gameStat.currentMap.timingpoints.size() && gameStat.osuMapTime >= static_cast<int>(gameStat.currentMap.timingpoints[i].offset); i++)
+                for (uint32_t i = gameStat.currentMap.currentTimeIndex; i < gameStat.currentMap.timingpoints.size() && gameStat.osuMapTime >= static_cast<int>(gameStat.currentMap.timingpoints.at(i).offset); i++)
                 {
-                    gameStat.currentMap.currentBpm = static_cast<int>(60000 / gameStat.currentMap.timingpoints[i].ms_per_beat);
-                    gameStat.currentMap.currentSpeed = gameStat.currentMap.timingpoints[i].velocity;
-                    gameStat.currentMap.kiai = gameStat.currentMap.timingpoints[i].kiai;
+                    gameStat.currentMap.currentBpm = static_cast<int>(60000 / gameStat.currentMap.timingpoints.at(i).ms_per_beat);
+                    gameStat.currentMap.currentSpeed = gameStat.currentMap.timingpoints.at(i).velocity;
+                    gameStat.currentMap.kiai = gameStat.currentMap.timingpoints.at(i).kiai;
                     gameStat.currentMap.currentTimeIndex = i;
-                    if (!gameStat.currentMap.timingpoints[i].inherited)
+                    if (!gameStat.currentMap.timingpoints.at(i).inherited)
                     {
                         gameStat.currentMap.currentUninheritTimeIndex = i;
                     }
@@ -191,24 +199,39 @@ void Overlay::Tick(gameplayStats &gameStat)
             for (uint32_t i = gameStat.currentMap.currentObjectIndex; i < gameStat.currentMap.hitobjects.size() && gameStat.osuMapTime >= gameStat.currentMap.hitobjects[i].start_time; i++)
             {
                 gameStat.currentMap.currentObjectIndex = i;
-                if (gameStat.currentMap.hitobjects[i].IsNewCombo())
+                if (gameStat.currentMap.hitobjects.at(i).IsNewCombo())
                 {
                     gameStat.currentMap.newComboIndex = i;
                 }
             }
-            for (int i = 0; i < 10; ++i)    // 10 because hardcoded row lol
+            if (gameStat.gameMode == gameMode::MANIA)
             {
-                if (gameStat.currentMap.hitobjects_sorted[i].size() == 0)
-                    break;
-
-                for (uint32_t a = gameStat.currentMap.currentObjectIndex_sorted[i]; a < gameStat.currentMap.hitobjects_sorted[i].size() && gameStat.osuMapTime >= gameStat.currentMap.hitobjects_sorted[i][a].start_time; a++)
+                for (int i = 0; i < 10; ++i)    // 10 because hardcoded row lol
                 {
-                    gameStat.currentMap.currentObjectIndex_sorted[i] = a;
+                    if (gameStat.currentMap.hitobjects_sorted[i].size() == 0)
+                        break;
+
+                    for (uint32_t a = gameStat.currentMap.currentObjectIndex_sorted[i]; a < gameStat.currentMap.hitobjects_sorted[i].size() && gameStat.osuMapTime >= gameStat.currentMap.hitobjects_sorted[i].at(a).start_time; a++)
+                    {
+                        gameStat.currentMap.currentObjectIndex_sorted[i] = a;
+                    }
                 }
             }
 
-            gameStat.beatIndex = static_cast<int>((gameStat.osuMapTime - static_cast<int>(gameStat.currentMap.timingpoints[gameStat.currentMap.currentUninheritTimeIndex].offset)) / gameStat.currentMap.timingpoints[gameStat.currentMap.currentUninheritTimeIndex].ms_per_beat);
+            gameStat.beatIndex = static_cast<int>((gameStat.osuMapTime - static_cast<int>(gameStat.currentMap.timingpoints.at(gameStat.currentMap.currentUninheritTimeIndex).offset)) / gameStat.currentMap.timingpoints.at(gameStat.currentMap.currentUninheritTimeIndex).ms_per_beat);
             gameStat.osuMapTimeLoaded = true;
+        }
+        catch (std::out_of_range)
+        {
+            for (uint32_t &i : gameStat.currentMap.currentObjectIndex_sorted)
+            {
+                i = 0;
+            }
+            gameStat.currentMap.currentUninheritTimeIndex = 0;
+            gameStat.currentMap.currentTimeIndex = 0;
+            gameStat.currentMap.currentObjectIndex = 0;
+            gameStat.currentMap.newComboIndex = 0;
+            gameStat.osuMapTimeLoaded = false;
         }
         catch (std::invalid_argument)
         {
@@ -222,6 +245,11 @@ void Overlay::Tick(gameplayStats &gameStat)
             gameStat.currentMap.newComboIndex = 0;
             gameStat.osuMapTimeLoaded = false;
         }
+    }
+    else
+    {
+        // still update things that go directly to memory.
+        gameStat.osuMapTime = osu_time;
     }
 
     std::wstring mode = gameStat.mfCurrentOsuGMode->ReadToEnd();
@@ -255,7 +283,7 @@ void Overlay::Update(DX::StepTimer const& timer)
 }
 
 // Draws the scene.
-void Overlay::Render(gameplayStats &gameStat)
+void Overlay::Render(osuGame &gameStat)
 {
     // Don't try to render anything before the first Update.
     if (m_timer.GetFrameCount() == 0)
@@ -392,13 +420,21 @@ void Overlay::Render(gameplayStats &gameStat)
     Present();
 }
 
-void Overlay::RenderStatTexts(gameplayStats &gameStat)
+void Overlay::RenderStatTexts(osuGame &gameStat)
 {
     //  Assumes font->Begin() and batch->Begin() is called.
 
     std::wstring textString;
 
-    if (!gameStat.streamCompanionRunning)
+    if (!gameStat.hOsu)
+    {
+        m_font->DrawString(m_spriteBatch.get(), L"Game not detected!",
+            DirectX::SimpleMath::Vector2(0.f, 30.f),
+            Colors::White, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 0.4f);
+        return;
+    }
+
+    if (!gameStat.bStreamCompanionRunning)
     {
         m_font->DrawString(m_spriteBatch.get(), L"StreamCompanion is not running!",
             DirectX::SimpleMath::Vector2(0.f, 30.f),
@@ -607,6 +643,7 @@ void Overlay::RenderStatTexts(gameplayStats &gameStat)
         {
             std::uint32_t nds = 0;
             std::uint32_t nds_f = 0;
+            std::uint32_t nds_warning_c = gameStat.currentMap.CircleSize * 6;
 
             std::wstring nds_warning = L"";
 
@@ -622,18 +659,18 @@ void Overlay::RenderStatTexts(gameplayStats &gameStat)
                 nds_f++;
             }
 
-            if (nds > 42 && nds < 52)
+            if (nds > nds_warning_c && nds < (nds_warning_c + 10))
             {
-                for (uint8_t i = 0; i < nds - 42; i++)
+                for (uint8_t i = 0; i < nds - nds_warning_c; i++)
                 {
                     nds_warning += L"!";
                 }
             }
-            else if (nds >= 52)
+            else if (nds >= (nds_warning_c + 10))
             {
                 nds_warning += L"!!!!!!!!!!";
             }
-            if (nds > 50)
+            if (nds > (nds_warning_c + 6))
             {
                 nds_warning += L" warning!";
             }
@@ -686,7 +723,7 @@ void Overlay::RenderStatTexts(gameplayStats &gameStat)
     }
 }
 
-void Overlay::RenderAssistant(gameplayStats &gameStat)
+void Overlay::RenderAssistant(osuGame &gameStat)
 {
     //  Assumes font->Begin() and batch->Begin() is called.
     /*
@@ -903,25 +940,48 @@ void Overlay::RenderAssistant(gameplayStats &gameStat)
 
         int columnpx = playField_size.y / gameStat.currentMap.CircleSize;
 
-        for (int i = 0; i < gameStat.currentMap.CircleSize; ++i)
+        float notesize = 20.f / (gameStat.currentMap.CircleSize / 4);
+
+        for (int col = 0; col < gameStat.currentMap.CircleSize; ++col)
         {
+            for (std::uint32_t i = gameStat.currentMap.currentObjectIndex_sorted[col]; i < gameStat.currentMap.hitobjects_sorted[col].size() && 1000 >= gameStat.currentMap.hitobjects_sorted[col][i].start_time - gameStat.osuMapTime; ++i)
+            {
+                if (gameStat.currentMap.hitobjects_sorted[col][i].IsCircle())
+                {
+                    float startpos = 540.f + (gameStat.currentMap.hitobjects_sorted[col][i].start_time - gameStat.osuMapTime);
+
+                    if (startpos <= 540.f)
+                        continue;
+
+                    m_batch->DrawQuad(
+                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos + notesize / 2, 360.f + (columnpx * col), 0.f), bgColor),
+                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos + notesize / 2, 360.f + (columnpx * (col + 1)), 0.f), bgColor),
+                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos - notesize / 2, 360.f + (columnpx * (col + 1)), 0.f), bgColor),
+                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos - notesize / 2, 360.f + (columnpx * col), 0.f), bgColor)
+                    );
+                }
+                else
+                {
+                    float startpos = 540.f + (gameStat.currentMap.hitobjects_sorted[col][i].start_time - gameStat.osuMapTime);
+                    float endpos = 540.f + (gameStat.currentMap.hitobjects_sorted[col][i].end_time - gameStat.osuMapTime);
+
+                    if (startpos < 540.f)
+                        startpos = 540.f;
+
+                    if (endpos >= 1280.f)
+                        endpos = 1280.f;
+                    if (endpos <= 540.f)
+                        continue;
+
+                    m_batch->DrawQuad(
+                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos - notesize / 2, 360.f + (columnpx * col), 0.f), bgColor),
+                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos - notesize / 2, 360.f + (columnpx * (col + 1)), 0.f), bgColor),
+                        VertexPositionColor(DirectX::SimpleMath::Vector3(endpos + notesize / 2, 360.f + (columnpx * (col + 1)), 0.f), bgColor),
+                        VertexPositionColor(DirectX::SimpleMath::Vector3(endpos + notesize / 2, 360.f + (columnpx * col), 0.f), bgColor)
+                    );
+                }
+            }
         }
-
-        /* playfield
-
-        v1 = DirectX::SimpleMath::Vector3(540.f, 360.f, 0.f);
-        v2 = DirectX::SimpleMath::Vector3(540.f, 580.f, 0.f);
-        v3 = DirectX::SimpleMath::Vector3(1280.f, 580.f, 0.f);
-        v4 = DirectX::SimpleMath::Vector3(1280.f, 360.f, 0.f);
-
-        VertexPositionColor vp1(v1, bgColor);
-        VertexPositionColor vp2(v2, bgColor);
-        VertexPositionColor vp3(v3, bgColor);
-        VertexPositionColor vp4(v4, bgColor);
-        */
-
-        //m_batch->DrawQuad(vp1, vp2, vp3, vp4);
-
         break;
     }
     }
