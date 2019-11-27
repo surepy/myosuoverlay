@@ -56,7 +56,7 @@ bool Overlay::loadMap(osuGame &gameStat)  //  refactor todo?
     std::wstring osuMap = static_cast<std::wstring>(gameStat.mfOsuFileLoc->ReadToEnd()); // TODO get directly from osu
     if (gameStat.currentMap.loadedMap.compare(osuMap) != 0)
     {
-        gameStat.osuMapTimeLoaded = false;
+        gameStat.bOsuIngame = false;
         gameStat.currentMap.Unload();
         try
         {
@@ -219,7 +219,12 @@ void Overlay::Tick(osuGame &gameStat)
             }
 
             gameStat.beatIndex = static_cast<int>((gameStat.osuMapTime - static_cast<int>(gameStat.currentMap.timingpoints.at(gameStat.currentMap.currentUninheritTimeIndex).offset)) / gameStat.currentMap.timingpoints.at(gameStat.currentMap.currentUninheritTimeIndex).ms_per_beat);
-            gameStat.osuMapTimeLoaded = true;
+
+            //
+
+            gameStat.bOsuIngame = gameStat.mfOsuPlayHP->ReadToEnd() == L"";
+
+            //
         }
         catch (std::out_of_range)
         {
@@ -231,7 +236,7 @@ void Overlay::Tick(osuGame &gameStat)
             gameStat.currentMap.currentTimeIndex = 0;
             gameStat.currentMap.currentObjectIndex = 0;
             gameStat.currentMap.newComboIndex = 0;
-            gameStat.osuMapTimeLoaded = false;
+            gameStat.bOsuIngame = false;
         }
         catch (std::invalid_argument)
         {
@@ -243,7 +248,7 @@ void Overlay::Tick(osuGame &gameStat)
             gameStat.currentMap.currentTimeIndex = 0;
             gameStat.currentMap.currentObjectIndex = 0;
             gameStat.currentMap.newComboIndex = 0;
-            gameStat.osuMapTimeLoaded = false;
+            gameStat.bOsuIngame = false;
         }
     }
     else
@@ -331,7 +336,7 @@ void Overlay::Render(osuGame &gameStat)
 
     origin.x = XMVectorGetX(m_font->MeasureString(textString.c_str()));
 
-    m_fontPos = gameStat.osuMapTimeLoaded ? DirectX::SimpleMath::Vector2(1000, 10) : DirectX::SimpleMath::Vector2(static_cast<float>(m_outputWidth), m_outputHeight - 21.f - 45.f);
+    m_fontPos = gameStat.bOsuIngame ? DirectX::SimpleMath::Vector2(1000, 10) : DirectX::SimpleMath::Vector2(static_cast<float>(m_outputWidth), m_outputHeight - 21.f - 45.f);
 
     result = RenderStatSquare(textString, origin, m_fontPos, Colors::HotPink, Colors::Black, 2);
 
@@ -442,7 +447,7 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
         return;
     }
 
-    if (!gameStat.osuMapTimeLoaded)
+    if (!gameStat.bOsuIngame)
         return;
 
     DirectX::SimpleMath::Vector2 origin;
@@ -746,7 +751,7 @@ void Overlay::RenderAssistant(osuGame &gameStat)
      *  cursorStartPoints.y = 12 + 72
      */
 
-    if (!gameStat.osuMapTimeLoaded || !(gameStat.currentMap.currentObjectIndex < gameStat.currentMap.hitobjects.size() - 1))
+    if (!(gameStat.currentMap.currentObjectIndex < gameStat.currentMap.hitobjects.size() - 1))
         return;
 
     std::wstring textString;
@@ -930,6 +935,9 @@ void Overlay::RenderAssistant(osuGame &gameStat)
         }
     }
     case gameMode::MANIA: {
+        // render vertically. until then don't draw anything.
+        if (!gameStat.bOsuIngame)
+            return;
         // origin: x= 540.f, y= 360.f
 
         DirectX::SimpleMath::Vector3 v1, v2, v3, v4;
@@ -954,10 +962,10 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                         continue;
 
                     m_batch->DrawQuad(
-                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos + notesize / 2, 360.f + (columnpx * col), 0.f), bgColor),
-                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos + notesize / 2, 360.f + (columnpx * (col + 1)), 0.f), bgColor),
-                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos - notesize / 2, 360.f + (columnpx * (col + 1)), 0.f), bgColor),
-                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos - notesize / 2, 360.f + (columnpx * col), 0.f), bgColor)
+                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos + notesize / 2, playField.y + (columnpx * col), 0.f), bgColor),
+                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos + notesize / 2, playField.y + (columnpx * (col + 1)), 0.f), bgColor),
+                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos - notesize / 2, playField.y + (columnpx * (col + 1)), 0.f), bgColor),
+                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos - notesize / 2, playField.y + (columnpx * col), 0.f), bgColor)
                     );
                 }
                 else
@@ -974,10 +982,10 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                         continue;
 
                     m_batch->DrawQuad(
-                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos - notesize / 2, 360.f + (columnpx * col), 0.f), bgColor),
-                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos - notesize / 2, 360.f + (columnpx * (col + 1)), 0.f), bgColor),
-                        VertexPositionColor(DirectX::SimpleMath::Vector3(endpos + notesize / 2, 360.f + (columnpx * (col + 1)), 0.f), bgColor),
-                        VertexPositionColor(DirectX::SimpleMath::Vector3(endpos + notesize / 2, 360.f + (columnpx * col), 0.f), bgColor)
+                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos - notesize / 2, playField.y + (columnpx * col), 0.f), bgColor),
+                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos - notesize / 2, playField.y + (columnpx * (col + 1)), 0.f), bgColor),
+                        VertexPositionColor(DirectX::SimpleMath::Vector3(endpos + notesize / 2, playField.y + (columnpx * (col + 1)), 0.f), bgColor),
+                        VertexPositionColor(DirectX::SimpleMath::Vector3(endpos + notesize / 2, playField.y + (columnpx * col), 0.f), bgColor)
                     );
                 }
             }

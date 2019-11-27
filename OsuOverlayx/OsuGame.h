@@ -73,6 +73,7 @@ struct osuGame {
      */
 
     DWORD pOsuMapTime;
+    DWORD pOsuFramedelay;
 
     std::chrono::milliseconds currentTime;
     std::chrono::milliseconds previousDistTime;
@@ -84,7 +85,7 @@ struct osuGame {
 
     int osuMapTime; // pointer?
     gameMode gameMode = gameMode::STANDARD;
-    bool osuMapTimeLoaded = false;  //  idk if i will use
+    bool bOsuIngame = false;  //  idk if i will use
 
     DirectX::SimpleMath::Vector2 cursorLocation;
     double cursorSpeed = 0;
