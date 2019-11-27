@@ -143,7 +143,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     gameStat.mfCursor = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("cursor_loc"));                // unused.. why is this here?
     gameStat.mfKey = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("kps_bpm"));                      // unused.. why is this here? 2
     gameStat.mfKeyStat = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("key_status"));               // unused.. why is this here? 3
-    gameStat.mfOsuMapTime = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("time_osu"));              // used, critical
+    gameStat.mfOsuMapTime = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("time_osu"));              // unused, i pull info directly from osu itself now.
     gameStat.mfOsuFileLoc = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("osu_file_loc"));          // used, critical
     gameStat.mfOsuKiaiStat = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("osu_kiai_stat"));        // unused until i pull data from osu itself
     gameStat.mfOsuPlayHits = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("livepp_hits"));          // relayed

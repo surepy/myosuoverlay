@@ -157,6 +157,9 @@ void Overlay::Tick(osuGame &gameStat)
     std::int32_t osu_time;
     ReadProcessMemory(gameStat.hOsu, LPCVOID(gameStat.pOsuMapTime), &osu_time, sizeof std::int32_t, nullptr);
 
+    std::double_t osu_fps;
+    ReadProcessMemory(gameStat.hOsu, LPCVOID(gameStat.pOsuFramedelay), &osu_fps, sizeof std::double_t, nullptr);
+
     if (mapLoaded)
     {
         try {
@@ -222,7 +225,8 @@ void Overlay::Tick(osuGame &gameStat)
 
             //
 
-            gameStat.bOsuIngame = gameStat.mfOsuPlayHP->ReadToEnd() == L"";
+            // for in-game detection; i'll figure out a better way.
+            gameStat.bOsuIngame = !(std::wstring(gameStat.mfOsuPlayHP->ReadToEnd()).size() == 3);
 
             //
         }
@@ -257,22 +261,30 @@ void Overlay::Tick(osuGame &gameStat)
         gameStat.osuMapTime = osu_time;
     }
 
-    std::wstring mode = gameStat.mfCurrentOsuGMode->ReadToEnd();
-    if (mode == L"Osu")
+    if (gameStat.bOsuIngame)
     {
-        gameStat.gameMode = gameMode::STANDARD;
+        std::int32_t osu_gmode;
+        ReadProcessMemory(gameStat.hOsu, LPCVOID(gameStat.pOsuGlobalGameMode), &osu_gmode, sizeof std::int32_t, nullptr);
+        gameStat.gameMode = static_cast<gameMode>(osu_gmode);
     }
-    else if (mode == L"OsuMania")
-    {
-        gameStat.gameMode = gameMode::MANIA;
-    }
-    else if (mode == L"Taiko")
-    {
-        gameStat.gameMode = gameMode::TAIKO;
-    }
-    else
-    {
-        gameStat.gameMode = gameMode::UNKNOWN;
+    else {
+        std::wstring mode = gameStat.mfCurrentOsuGMode->ReadToEnd();
+        if (mode == L"Osu")
+        {
+            gameStat.gameMode = gameMode::STANDARD;
+        }
+        else if (mode == L"OsuMania")
+        {
+            gameStat.gameMode = gameMode::MANIA;
+        }
+        else if (mode == L"Taiko")
+        {
+            gameStat.gameMode = gameMode::TAIKO;
+        }
+        else
+        {
+            gameStat.gameMode = gameMode::UNKNOWN;
+        }
     }
 
     Render(gameStat);
@@ -751,7 +763,11 @@ void Overlay::RenderAssistant(osuGame &gameStat)
      *  cursorStartPoints.y = 12 + 72
      */
 
-    if (!(gameStat.currentMap.currentObjectIndex < gameStat.currentMap.hitobjects.size() - 1))
+    if (gameStat.currentMap.hitobjects.size() == 0 || !(gameStat.currentMap.currentObjectIndex < gameStat.currentMap.hitobjects.size() - 1))
+        return;
+
+    // disable if want
+    if (!gameStat.bOsuIngame)
         return;
 
     std::wstring textString;
@@ -763,16 +779,19 @@ void Overlay::RenderAssistant(osuGame &gameStat)
         hitobject *next_object = gameStat.currentMap.getNextHitObject();
         hitobject *upcoming_object = gameStat.currentMap.getUpcomingHitObject();
 
-        if (std::wstring(gameStat.mfCurrentModsStr->ReadToEnd()).find(L"HD") != std::string::npos) // is hidden
+        if ((std::wstring(gameStat.mfCurrentModsStr->ReadToEnd()).find(L"HD") != std::string::npos) || !gameStat.bOsuIngame) // is hidden or not in game
         {
             std::uint32_t comboIndex = gameStat.currentMap.newComboIndex;
+            bool bContinue = true;
 
-            for (std::uint32_t i = gameStat.currentMap.currentObjectIndex + 1; i < gameStat.currentMap.hitobjects.size() && 600 >= gameStat.currentMap.hitobjects[i].start_time - gameStat.osuMapTime; i++)
+            for (std::uint32_t i = gameStat.currentMap.currentObjectIndex + 1; i < gameStat.currentMap.hitobjects.size() && bContinue; i++)
             {
                 //  Starts at 1
                 //textString = std::to_wstring(i - gameStat.currentMap.currentObjectIndex);
 
                 //  follows map combo
+
+                bContinue = (gameStat.bOsuIngame ? 600 : 800) >= gameStat.currentMap.hitobjects[i].start_time - gameStat.osuMapTime;
 
                 comboIndex = gameStat.currentMap.hitobjects[i].IsNewCombo() ? i : comboIndex;
 
@@ -783,19 +802,31 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                 //  first note
                 if (i == gameStat.currentMap.currentObjectIndex + 1)
                 {
+                    /*if (!gameStat.bOsuIngame)
+                    {
+                        textString = std::to_wstring(i - comboIndex);
+
+                        m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
+                            DirectX::SimpleMath::Vector2(
+                                2 + 257.f + (*current_object).x * 1.5f, // padding + pixel
+                                84.f + (*current_object).y * 1.5f
+                            ),
+                            Colors::LightBlue, 0.f, m_font->MeasureString(textString.c_str()) * 0.4f, 0.4f);
+                    }*/
+
                     textString = L"> " + textString + L" <";
 
                     m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
                         DirectX::SimpleMath::Vector2(
-                            2 + 257.f + (*current_object).x * 1.5f, // padding + pixel
-                            84.f + (*current_object).y * 1.5f
+                            2 + 257.f + (*next_object).x * 1.5f, // padding + pixel
+                            84.f + (*next_object).y * 1.5f
                         ),
                         Colors::Yellow, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
 
-                    m_font->DrawString(m_spriteBatch.get(), std::wstring(L" - " + std::to_wstring((*current_object).start_time - gameStat.osuMapTime)).c_str(),
+                    m_font->DrawString(m_spriteBatch.get(), std::wstring(L" - " + std::to_wstring((*next_object).start_time - gameStat.osuMapTime)).c_str(),
                         DirectX::SimpleMath::Vector2(
-                            257.f + (*current_object).x * 1.5f + (XMVectorGetX(m_font->MeasureString(textString.c_str())) * 0.3f),
-                            84.f + (*current_object).y * 1.5f
+                            257.f + (*next_object).x * 1.5f + (XMVectorGetX(m_font->MeasureString(textString.c_str())) * 0.3f),
+                            84.f + (*next_object).y * 1.5f
                         ),
                         Colors::Yellow, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 0.35f);
                 }
@@ -815,15 +846,15 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                         ),
                         Colors::White, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 0.35f);
 
-                    if (std::sqrt(
+                    if ((std::sqrt(
                         std::pow(
                             gameStat.currentMap.hitobjects[i - 1].x - gameStat.currentMap.hitobjects[i].x, 2
                         ) +
                         std::pow(
                             gameStat.currentMap.hitobjects[i - 1].y - gameStat.currentMap.hitobjects[i].y, 2
                         )
-                    ) > 125.0
-                        && gameStat.currentMap.hitobjects[i - 2].IsCircle()) // todo remove1
+                    ) > 125.0f
+                        && gameStat.currentMap.hitobjects[i - 2].IsCircle()) || !gameStat.bOsuIngame) // todo remove1
                     {
                         double diffx = gameStat.currentMap.hitobjects[i - 1].x - gameStat.currentMap.hitobjects[i - 2].x;
                         double diffy = gameStat.currentMap.hitobjects[i - 1].y - gameStat.currentMap.hitobjects[i - 2].y;

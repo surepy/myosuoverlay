@@ -4,6 +4,7 @@
 
 struct osuGame;
 
+//  note: https://github.com/Piotrekol/StreamCompanion/blob/171fab829d921aa9bae355904d8bb90c0eba0e47/plugins/OsuMemoryEventSource/MemoryListener.cs
 struct Signatures
 {
 public:
@@ -70,28 +71,64 @@ public:
     static constexpr int TIME_OFFSET = 6 + 1; // + 1 goes to address that points to the currentAudioTime value
 
     /*  frame delay (fps)
-    08E35B0B - DC 0D 48632C01  - fmul qword ptr [012C6348]
-    08E35B11 - DEC1 - faddp
-    08E35B13 - DD 5E 0C  - fstp qword ptr [esi+0C] <<
-    08E35B16 - 8B 4E 34  - mov ecx,[esi+34]
-    08E35B19 - 39 09  - cmp [ecx],ecx
+    #=zq_nW7Nx1FUE8jqy1BA==::#=zDtFubb0=+F7 - D9E8                  - fld1
+    #=zq_nW7Nx1FUE8jqy1BA==::#=zDtFubb0=+F9 - DEE1                  - fsubrp st(1),st(0)
+    #=zq_nW7Nx1FUE8jqy1BA==::#=zDtFubb0=+FB - DC 0D 08605303        - fmul qword ptr [03536008] { [33.01] } <<
+    #=zq_nW7Nx1FUE8jqy1BA==::#=zDtFubb0=+101- DEC1                  - faddp
+    #=zq_nW7Nx1FUE8jqy1BA==::#=zDtFubb0=+103- DD 5E 0C              - fstp qword ptr [esi+0C]
 
-    EAX=00000001
-    EBX=02CF51A0
-    ECX=02D9D9E4
-    EDX=00003F80
-    ESI=02D9D9E4
-    EDI=02CBD14C
-    ESP=009CEAE0
-    EBP=009CEAFC
-    EIP=08E35B16
-
-    \xdd\x5e\x00\x8b\x4e xx?xx
+    \xdd\x45\x00\xd9\xe8\xde\xe1\xdc\x0d xx?xxxxxx
+    dd 45 ?
+    d9 e8
+    de e1
+    dc 0d
 
     */
-    static constexpr unsigned char FRAME_DELAY[] = { 0xdd, 0x5e, 0x0c, 0x8b, 0x4e };
-    static constexpr char *FRAME_DELAY_MASK = PCHAR("xx?xx");
-    static constexpr int FRAME_DELAY_OFFSET = 4 + 0x0C;
+    static constexpr unsigned char FRAME_DELAY[] = { 0xdd, 0x45, 0x00, 0xd9, 0xe8, 0xde, 0xe1, 0xdc, 0x0d };
+    static constexpr char *FRAME_DELAY_MASK = PCHAR("xx?xxxxxx");
+    static constexpr int FRAME_DELAY_OFFSET = 8 + 1;
+
+    /*Game mode global (0 = osu!, 1 = osu!taiko, 2 = osu!catch, 3 = osu!mania)
+
+    077DFE46 - 7C 07                 - jl #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+7
+    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg- 55                    - push ebp
+    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+1- 8B EC                 - mov ebp,esp
+    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+3- 57                    - push edi
+    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+4- 56                    - push esi
+    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+5- 53                    - push ebx
+    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+6- 3B 0D 84625303        - cmp ecx,[03536284] { [00000000] } <<
+    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+C- 74 60                 - je #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+6E
+    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+E- 89 0D 84625303        - mov [03536284],ecx { [00000000] } << ?
+    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+14- 8B 3D D04F6504        - mov edi,[04654FD0] { [0379BFC0] }
+
+    EAX=00000003
+    EBX=3354E588
+    ECX=00000003
+    EDX=00000000
+    ESI=3354E6F8
+    EDI=03662ED0
+    ESP=014FEC90
+    EBP=014FEC9C
+    EIP=077DFE5C
+
+    sig:
+    \x7c\x00\x55\x8b\xec\x57\x56\x53\x3b\x0d x?xxxxxxxx
+
+    7c ?
+    55
+    8b ec
+    57
+    56
+    53
+    3b 0d
+    */
+
+    static constexpr unsigned char GAMEMODE_GLOBAL[] = { 0x7c, 0x00, 0x55, 0x8b, 0xec, 0x57, 0x56, 0x53, 0x3b, 0x0d };
+    static constexpr char *GAMEMODE_GLOBAL_MASK = PCHAR("x?xxxxxxxx");
+    static constexpr int GAMEMODE_GLOBAL_OFFSET = 9 + 1;
+
+    /* x300 (std)
+    */
 
     /*  score
     09DB8FBA - 5B - pop ebx

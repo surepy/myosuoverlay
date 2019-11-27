@@ -51,10 +51,18 @@ struct osuGame {
         ptr = Signatures::FindPattern(hOsu, Signatures::TIME, Signatures::TIME_MASK, Signatures::TIME_OFFSET, 0);
         ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD, nullptr);
         pOsuMapTime = addr;
+
+        ptr = Signatures::FindPattern(hOsu, Signatures::FRAME_DELAY, Signatures::FRAME_DELAY_MASK, Signatures::FRAME_DELAY_OFFSET, 0);
+        ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD, nullptr);
+        pOsuFramedelay = addr;
+
+        ptr = Signatures::FindPattern(hOsu, Signatures::GAMEMODE_GLOBAL, Signatures::GAMEMODE_GLOBAL_MASK, Signatures::GAMEMODE_GLOBAL_OFFSET, 0);
+        ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD, nullptr);
+        pOsuGlobalGameMode = addr;
     }
 
     /*
-     *  StreamCompanaion Pointers
+     *  StreamCompanaion shared mapfiles
      */
     std::unique_ptr<Utilities::MappingFile> mfCursor;
     std::unique_ptr<Utilities::MappingFile> mfKey;
@@ -74,6 +82,7 @@ struct osuGame {
 
     DWORD pOsuMapTime;
     DWORD pOsuFramedelay;
+    DWORD pOsuGlobalGameMode;
 
     std::chrono::milliseconds currentTime;
     std::chrono::milliseconds previousDistTime;
