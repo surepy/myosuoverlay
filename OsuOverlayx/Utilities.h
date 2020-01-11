@@ -1,6 +1,11 @@
 #pragma once
+
 #include <Windows.h>
 #include <Tlhelp32.h>
+#include <string>
+#include <iomanip>
+#include <strsafe.h>
+#include <iostream>
 
 class Utilities {
 public:
@@ -52,4 +57,7 @@ public:
             return reinterpret_cast<TCHAR*>(data);
         }
     };
+
+    template <typename T>
+    static std::wstring to_wstring_with_precision(const T a_value, const int n = 6);
 };

@@ -45,7 +45,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     g_game->SetName(arg == L"" ? L"surepyw" : arg);
 
-    gameStat.LoadGame();
+    gameStat.CheckGame();
 
     MSG msg = {};
     while (WM_QUIT != msg.message)

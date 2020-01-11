@@ -42,7 +42,7 @@ public:
             }
         }
 
-        return NULL;
+        return NULL; // no sig found
     }
 
     // got from external sources :)
@@ -64,9 +64,31 @@ public:
     EIP=08E3DF31
 
     \xdb\x5d\x00\x8b\x45\x00\xa3\x00\x00\x00\x00\x8b\x35 xx?xx?x????xx
+
+    new sig:
+
+    1B384D00 - DB 5D EC  - fistp dword ptr [ebp-14]
+    1B384D03 - 8B 45 EC  - mov eax,[ebp-14]
+    1B384D06 - A3 CC67A601 - mov [01A667CC],eax <<
+    1B384D0B - 83 3D 4C407804 00 - cmp dword ptr [0478404C],00
+    1B384D12 - 74 1E - je #=zsb859T37qVe3NOvX1Q==::#=z$TuaImGpnw3D+472
+
+    EAX=000092B2
+    EBX=00000000
+    ECX=273F7E8C
+    EDX=00000000
+    ESI=00000000
+    EDI=188A6BF8
+    ESP=016FEBD8
+    EBP=016FEC04
+    EIP=1B384D0B
+
+    \xdb\x5d\x00\x8b\x45\x00\xa3\x00\x00\x00\x00\x83\x3d xx?xx?x????xx
+
     */
 
-    static constexpr unsigned char TIME[] = { 0xDB, 0x5D, 0xE8, 0x8B, 0x45, 0xE8, 0xA3 };
+    //static constexpr unsigned char TIME[] = { 0xDB, 0x5D, 0xE8, 0x8B, 0x45, 0xE8, 0xA3 };
+    static constexpr unsigned char TIME[] = { 0xDB, 0x5D, 0xEC, 0x8B, 0x45, 0xEC, 0xA3 };
     static constexpr char *TIME_MASK = PCHAR("xxxxxxx");
     static constexpr int TIME_OFFSET = 6 + 1; // + 1 goes to address that points to the currentAudioTime value
 
@@ -90,66 +112,59 @@ public:
 
     /*Game mode global (0 = osu!, 1 = osu!taiko, 2 = osu!catch, 3 = osu!mania)
 
-    077DFE46 - 7C 07                 - jl #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+7
-    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg- 55                    - push ebp
-    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+1- 8B EC                 - mov ebp,esp
-    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+3- 57                    - push edi
-    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+4- 56                    - push esi
-    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+5- 53                    - push ebx
-    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+6- 3B 0D 84625303        - cmp ecx,[03536284] { [00000000] } <<
-    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+C- 74 60                 - je #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+6E
-    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+E- 89 0D 84625303        - mov [03536284],ecx { [00000000] } << ?
-    #=zlHHO8QbO6XKtCg5NKWkkDAVeEYE7::#=zBLQ6Baw6vdwg+14- 8B 3D D04F6504        - mov edi,[04654FD0] { [0379BFC0] }
+    0A2DFEB8 - 18 81 450E0000        - sbb [ecx+00000E45],al
+    0A2DFEBE - 00 00                 - add [eax],al
+    0A2DFEC0 - 0C 81                 - or al,-7F { 129 }
+    0A2DFEC2 - 45                    - inc ebp
+    0A2DFEC3 - 0E                    - push cs
+    0A2DFEC4 - EC                    - in al,dx
+    0A2DFEC5 - AB                    - stosd
+    0A2DFEC6 - 7C 06                 - jl #=z9Hok5U34HsdnWn9JHJXpJ60N8uhI::#=zbrxSYSObQkm$+6
 
-    EAX=00000003
-    EBX=3354E588
-    ECX=00000003
-    EDX=00000000
-    ESI=3354E6F8
-    EDI=03662ED0
-    ESP=014FEC90
-    EBP=014FEC9C
-    EIP=077DFE5C
+    #=z9Hok5U34HsdnWn9JHJXpJ60N8uhI::#=zbrxSYSObQkm$ - 55                    - push ebp
+    #=z9Hok5U34HsdnWn9JHJXpJ60N8uhI::#=zbrxSYSObQkm$+1- 8B EC                 - mov ebp,esp
+    #=z9Hok5U34HsdnWn9JHJXpJ60N8uhI::#=zbrxSYSObQkm$+3- 57                    - push edi
+    #=z9Hok5U34HsdnWn9JHJXpJ60N8uhI::#=zbrxSYSObQkm$+4- 56                    - push esi
+    #=z9Hok5U34HsdnWn9JHJXpJ60N8uhI::#=zbrxSYSObQkm$+5- 53                    - push ebx
+    #=z9Hok5U34HsdnWn9JHJXpJ60N8uhI::#=zbrxSYSObQkm$+6- 3B 0D F45CB902        - cmp ecx,[02B95CF4] { (0) }
+    #=z9Hok5U34HsdnWn9JHJXpJ60N8uhI::#=zbrxSYSObQkm$+C- 74 60                 - je #=z9Hok5U34HsdnWn9JHJXpJ60N8uhI::#=zbrxSYSObQkm$+6E
+    #=z9Hok5U34HsdnWn9JHJXpJ60N8uhI::#=zbrxSYSObQkm$+E- 89 0D F45CB902        - mov [02B95CF4],ecx { (0) }
 
     sig:
-    \x7c\x00\x55\x8b\xec\x57\x56\x53\x3b\x0d x?xxxxxxxx
+    \x55\x8b\xec\x57\x56\x53\x3b\x0d xxxxxxxx
 
-    7c ?
-    55
-    8b ec
-    57
-    56
-    53
-    3b 0d
+    55 8B EC 57 56 53 3B 0D F4 5C B9 02
     */
 
-    static constexpr unsigned char GAMEMODE_GLOBAL[] = { 0x7c, 0x00, 0x55, 0x8b, 0xec, 0x57, 0x56, 0x53, 0x3b, 0x0d };
-    static constexpr char *GAMEMODE_GLOBAL_MASK = PCHAR("x?xxxxxxxx");
-    static constexpr int GAMEMODE_GLOBAL_OFFSET = 9 + 1;
+    static constexpr unsigned char GAMEMODE_GLOBAL[] = { 0x55, 0x8B, 0xEC, 0x57, 0x56, 0x53, 0x3B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x74, 0x60 };
+    static constexpr char *GAMEMODE_GLOBAL_MASK = PCHAR("xxxxxxx?????xx");
+    static constexpr int GAMEMODE_GLOBAL_OFFSET = 7 + 1;
+
+    /*
+    \x80\x3d\x00\x00\x00\x00\x00\x75\x00\x8b\x7e xx?????x?xx
+
+    80 3d ? ? ? ? ? 75 ? 8b 7e
+    */
+
+    static constexpr unsigned char INPUT_COUNTER[] = { 0xFF, 0x46, 0x14, 0x80, 0x3d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x75, 0x00, 0x8b, 0x7e };
+    static constexpr char *INPUT_COUNTER_MASK = PCHAR("xxxxx?????x?xx");
+    static constexpr int INPUT_COUNTER_OFFSET = 4 + 1;
 
     /* x300 (std)
     */
 
     /*  score
-    09DB8FBA - 5B - pop ebx
-    09DB8FBB - 05 60F2D000 - add eax,00D0F260
-    09DB8FC0 - 89 51 28  - mov [ecx+28],edx <<
-    09DB8FC3 - C3 - ret
-    09DB8FC4 - 00 00  - add [eax],al
 
-    EAX=00D0F2B8
-    EBX=00000000
-    ECX=2B80C368
-    EDX=00048B74
-    ESI=21674438
-    EDI=2B80C368
-    ESP=009CE82C
-    EBP=009CE844
-    EIP=09DB8FC3
+    EAX=00000001
+    EBX=25814338
+    ECX=24C15C98
+    EDX=24C10F80
+    ESI=00000000
+    EDI=24C11980
+    EBP=008FE870
+    ESP=008FE6C0
+    EIP=0B09B013
 
-    \x89\x51\x00\xc3 xx?x
-
-    89 51 ? c3
     */
 
     /* map name (i think)

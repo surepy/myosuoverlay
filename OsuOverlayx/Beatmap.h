@@ -56,6 +56,26 @@ struct timingpoint {
     float ms_per_beat;
     bool kiai;
     bool inherited;
+
+    int getBPM() {
+        return static_cast<int>(60000 / ms_per_beat);
+    }
+
+    double getBPM_Double() 
+    {
+        return 60000 / ms_per_beat;
+    }
+
+    bool operator==(timingpoint const &point)
+    {
+        return (this->velocity == point.velocity && this->kiai == point.kiai && this->ms_per_beat == point.ms_per_beat && this->inherited);
+    }
+
+    bool operator!=(timingpoint const &point)
+    {
+        return !(*this == point);
+    }
+
 };
 
 class beatmap {
