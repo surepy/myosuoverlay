@@ -13,14 +13,24 @@ enum ObjectType : uint8_t {
 };
 
 struct slidercurve {
-    uint16_t x;
-    uint16_t y;
+    int32_t x;
+    int32_t y;
+
+    bool operator==(slidercurve *curve)
+    {
+        return this->x == curve->x && this->y == curve->y;
+    }
+
+    bool operator==(slidercurve &curve)
+    {
+        return this->x == curve.x && this->y == curve.y;
+    }
 };
 
 struct hitobject {
     uint8_t type;
-    uint16_t x;
-    uint16_t y;
+    int32_t x;
+    int32_t y;
     int32_t start_time;
     int32_t end_time;
     uint32_t repeat;
@@ -61,7 +71,7 @@ struct timingpoint {
         return static_cast<int>(60000 / ms_per_beat);
     }
 
-    double getBPM_Double() 
+    double getBPM_Double()
     {
         return 60000 / ms_per_beat;
     }
@@ -69,13 +79,13 @@ struct timingpoint {
     bool operator==(timingpoint const &point)
     {
         return (this->velocity == point.velocity && this->kiai == point.kiai && this->ms_per_beat == point.ms_per_beat && this->inherited);
+        //
     }
 
     bool operator!=(timingpoint const &point)
     {
         return !(*this == point);
     }
-
 };
 
 class beatmap {
@@ -116,14 +126,14 @@ public:
         try {
             return &this->hitobjects.at(this->currentObjectIndex + 1);
         }
-        catch (const std::out_of_range& e) { return nullptr; }
+        catch (std::out_of_range) { return nullptr; }
     };
 
     hitobject* getUpcomingHitObject() {
         try {
             return &this->hitobjects.at(this->currentObjectIndex + 2);
         }
-        catch (const std::out_of_range& e) { return nullptr; }
+        catch (std::out_of_range) { return nullptr; }
     };
 
     /*
@@ -139,7 +149,7 @@ public:
         try {
             return &this->hitobjects_sorted[row].at(this->currentObjectIndex_sorted[row] + 1);
         }
-        catch (const std::out_of_range& e) { return nullptr; }
+        catch (std::out_of_range) { return nullptr; }
     };
 
     hitobject* getUpcomingHitObject(int row)
@@ -147,7 +157,7 @@ public:
         try {
             return &this->hitobjects_sorted[row].at(this->currentObjectIndex_sorted[row] + 2);
         }
-        catch (const std::out_of_range& e) { return nullptr; }
+        catch (std::out_of_range) { return nullptr; }
     };
 
     timingpoint* getCurrentTimingPoint() { return &this->timingpoints[this->currentTimeIndex]; };

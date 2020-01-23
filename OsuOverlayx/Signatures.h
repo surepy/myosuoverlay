@@ -133,12 +133,42 @@ public:
     sig:
     \x55\x8b\xec\x57\x56\x53\x3b\x0d xxxxxxxx
 
+    \xec\x57\x56\x53\x3b\x0d xxxxxx
+
     55 8B EC 57 56 53 3B 0D F4 5C B9 02
     */
 
-    static constexpr unsigned char GAMEMODE_GLOBAL[] = { 0x55, 0x8B, 0xEC, 0x57, 0x56, 0x53, 0x3B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x74, 0x60 };
-    static constexpr char *GAMEMODE_GLOBAL_MASK = PCHAR("xxxxxxx?????xx");
-    static constexpr int GAMEMODE_GLOBAL_OFFSET = 7 + 1;
+    static constexpr unsigned char GAMEMODE_GLOBAL[] = { 0xEC, 0x57, 0x56, 0x53, 0x3B, 0x0D };
+    static constexpr char *GAMEMODE_GLOBAL_MASK = PCHAR("xxxxxx");
+    static constexpr int GAMEMODE_GLOBAL_OFFSET = 5 + 1;
+
+    /*Mods
+
+    see Mods struct
+
+    0C61DD9B - 8B 45 B8  - mov eax,[ebp-48]
+    0C61DD9E - 8B 48 14  - mov ecx,[eax+14]
+    0C61DDA1 - 09 0D 68629301  - or [01936268],ecx <<
+    0C61DDA7 - E8 9494FDFF - call #=z7S$_NECUeKvDcG$Jt6s7VjIpwiJVqlw20n0y1h8=::#=z9NWjQ9pbrv8Pn7$A$A==
+    0C61DDAC - 8B 45 BC  - mov eax,[ebp-44]
+
+    EAX=1B2432F8
+    EBX=00000000
+    ECX=00000001
+    EDX=00000000
+    ESI=0153EDAC
+    EDI=0153EDBC
+    ESP=0153ED94
+    EBP=0153EDDC
+    EIP=0C61DDA7
+
+    \xff\xe0\x8b\x45\x00\x8b\x48\x00\x09\x0d xxxx?xx?xx
+
+    */
+
+    static constexpr unsigned char MODS[] = { 0xFF, 0xE0, 0x8B, 0x45, 0x00, 0x8B, 0x48, 0x00, 0x09, 0x0D };
+    static constexpr char *MODS_MASK = PCHAR("xxxx?xx?xx");
+    static constexpr int MODS_OFFSET = 9 + 1;
 
     /*
     \x80\x3d\x00\x00\x00\x00\x00\x75\x00\x8b\x7e xx?????x?xx

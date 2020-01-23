@@ -36,7 +36,15 @@ inline bool beatmap::ParseTimingPoint(std::vector<std::wstring>& values) {
 
     bool kiai = std::stoi(values.at(7)) == 1;
 
-    int32_t offset = std::stoi(values.at(0));
+    int32_t offset;
+    try {
+        offset = std::stoi(values.at(0));
+    }
+    catch (std::out_of_range)
+    {
+        offset = 0;
+    }
+
     float ms_per_beat;
     bool inherited = false;
 
@@ -182,6 +190,11 @@ bool beatmap::Parse(std::wstring filename) {
 
     while (std::getline(beatmap_file, current_line)) {
         static std::wstring current_section;
+
+        OutputDebugStringW(current_section.c_str());
+        OutputDebugStringW(L" ");
+        OutputDebugStringW(current_line.c_str());
+        OutputDebugStringW(L"\n");
 
         if (!current_line.empty() && current_line.front() == '[' && current_line.back() == ']') {
             current_section = current_line.substr(1, current_line.length() - 2);

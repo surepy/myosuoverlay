@@ -180,6 +180,15 @@ struct osuGame {
             pInput = addr;
         }
 
+        ptr = Signatures::FindPattern(hOsu, Signatures::MODS, Signatures::MODS_MASK, Signatures::MODS_OFFSET, 0);
+        if (ptr == NULL)
+            OutputDebugStringW(L"mod sig not found!\n");
+        else
+        {
+            ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD, nullptr);
+            pMods = addr;
+        }
+
         bOsuLoaded = true;
         bOsuLoading = false;
     }
@@ -230,6 +239,7 @@ struct osuGame {
     DWORD pOsuFramedelay;
     DWORD pOsuGlobalGameMode;
     DWORD pInput;
+    DWORD pMods;
 
     std::chrono::milliseconds currentTime;
     std::chrono::milliseconds previousDistTime;
@@ -238,6 +248,23 @@ struct osuGame {
     std::vector<std::chrono::milliseconds> clicks;
 
     hitobject *getCurrentHitObject() { return this->currentMap.getCurrentHitObject(); };
+
+    std::int32_t mods;
+
+    bool hasMod(const Mods &mod)
+    {
+        return (mods & mod) == mod;
+    }
+
+    double GetSecondsFromOsuTime(int time)
+    {
+        return (time / (hasMod(Mods::DoubleTime) || hasMod(Mods::Nightcore) ? 1.0 : 0.77) / 1000.0);
+    }
+
+    int GetActualBPM(int bpm)
+    {
+        return static_cast<int>(bpm * (hasMod(Mods::DoubleTime) || hasMod(Mods::Nightcore) ? 1.5 : 1));
+    }
 
     int osuMapTime; // pointer?
     PlayMode gameMode = PlayMode::STANDARD;

@@ -58,6 +58,30 @@ public:
         }
     };
 
+    static int64_t factorial(int n)
+    {
+        if (n == 0)
+            return 1;
+        else
+            return n * factorial(n - 1);
+    }
+
+    static double binomialCoeff(int n, int k)
+    {
+        return ((double)factorial(n) / (double)(factorial((n - k)) * factorial(k)));
+    }
+
+    static int getBezierPoint(std::vector<int> *points, double t) {
+        int answer = 0;
+        int n = points->size() - 1;
+
+        for (int i = 0; i < points->size(); i++)
+        {
+            answer += (binomialCoeff(n, i) *  std::pow((1 - t), (n - i))  * std::pow(t, i) * points->at(i));
+        }
+        return answer;
+    }
+
     template <typename T>
     static std::wstring to_wstring_with_precision(const T a_value, const int n = 6);
 };

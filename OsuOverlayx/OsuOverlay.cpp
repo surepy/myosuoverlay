@@ -66,9 +66,11 @@ bool Overlay::loadMap(osuGame &gameStat)  //  refactor todo?
                 return false;
             }
             gameStat.currentMap.loadedMap = osuMap;
+            OutputDebugStringW(L"Loaded!\n");
         }
         catch (std::out_of_range)
         {
+            OutputDebugStringW(L"Load failed!\n");
             return false;
         }
     }
@@ -162,6 +164,8 @@ void Overlay::Tick(osuGame &gameStat)
 
     std::double_t osu_fps;
     ReadProcessMemory(gameStat.hOsu, LPCVOID(gameStat.pOsuFramedelay), &osu_fps, sizeof std::double_t, nullptr);
+
+    ReadProcessMemory(gameStat.hOsu, LPCVOID(gameStat.pMods), &gameStat.mods, sizeof std::int32_t, nullptr);
 
     if (mapLoaded)
     {
@@ -325,6 +329,8 @@ void Overlay::Render(osuGame &gameStat)
 
     m_spriteBatch->Begin();
     m_batch->Begin();
+
+    //DrawCircleIWantToKillMyself();
 
     std::wstring textString;
     XMVECTOR result;
@@ -533,20 +539,20 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
 
         if (next_object != nullptr)
         {
-            textString = std::wstring(L"next: x: ") + std::to_wstring((*next_object).x) +
-                std::wstring(L" y: ") + std::to_wstring((*next_object).y) +
+            textString = std::wstring(L"next: x: ") + std::to_wstring(next_object->x) +
+                std::wstring(L" y: ") + std::to_wstring(next_object->y) +
                 std::wstring(L"  dist: ") + Utilities::to_wstring_with_precision(
                     std::sqrt(
                         std::pow(
-                        (*next_object).x - gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex].x, 2
+                            next_object->x - current_object->x, 2
                         ) +
                         std::pow(
-                        (*next_object).y - gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex].y, 2
+                            next_object->y - current_object->y, 2
                         )
                     ), 1) +
                 std::wstring(L" combo: ") + std::to_wstring(gameStat.currentMap.currentObjectIndex - gameStat.currentMap.newComboIndex + 1) +
-                std::wstring(L" time left: ") + std::to_wstring(gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 1].start_time - gameStat.osuMapTime) +
-                std::wstring(L"/") + std::to_wstring(gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 1].start_time - gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex].start_time);
+                std::wstring(L" time left: ") + std::to_wstring(static_cast<int>(gameStat.GetSecondsFromOsuTime(next_object->start_time - gameStat.osuMapTime) * 1000)) + L"ms";
+            //std::wstring(L"/") + std::to_wstring(next_object->start_time - current_object->start_time);
 
             m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
                 m_fontPos, Colors::Yellow, 0.f, origin, 0.4f);
@@ -561,19 +567,19 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
 
         if (upcoming_object != nullptr)
         {
-            textString = std::wstring(L"upcoming: x: ") + std::to_wstring(gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 2].x) +
-                std::wstring(L" y: ") + std::to_wstring(gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 2].y) +
+            textString = std::wstring(L"upcoming: x: ") + std::to_wstring(upcoming_object->x) +
+                std::wstring(L" y: ") + std::to_wstring(upcoming_object->y) +
                 std::wstring(L"  dist: ") + Utilities::to_wstring_with_precision(
                     std::sqrt(
                         std::pow(
-                            gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 2].x - (*next_object).x, 2
+                            upcoming_object->x - next_object->x, 2
                         ) +
                         std::pow(
-                            gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 2].y - (*next_object).y, 2
+                            upcoming_object->y - next_object->y, 2
                         )
                     ), 1) +
-                std::wstring(L"  time left: ") + std::to_wstring(gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 2].start_time - gameStat.osuMapTime) +
-                std::wstring(L"/") + std::to_wstring(gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 2].start_time - gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex].start_time);
+                std::wstring(L"  time left: ") + std::to_wstring(static_cast<int>(gameStat.GetSecondsFromOsuTime(upcoming_object->start_time - gameStat.osuMapTime) * 1000)) + L"ms";
+            //std::wstring(L"/") + std::to_wstring(gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 2].start_time - gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex].start_time);
 
             m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
                 m_fontPos, Colors::Aqua, 0.f, origin, 0.4f);
@@ -588,10 +594,10 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
 
         if (gameStat.osuMapTime < gameStat.currentMap.hitobjects[gameStat.currentMap.hitobjects.size() - 1].end_time)
         {
-            timingpoint *next_timingpoint = nullptr, *prev_timingpoint = nullptr;
+            timingpoint *current_timingpoint = gameStat.currentMap.getCurrentTimingPoint(), *next_timingpoint = nullptr, *prev_timingpoint = nullptr;
             for (int i = gameStat.currentMap.currentTimeIndex + 1; i < gameStat.currentMap.timingpoints.size(); i++)
             {
-                if (*gameStat.currentMap.getCurrentTimingPoint() != gameStat.currentMap.timingpoints.at(i))
+                if (*current_timingpoint != gameStat.currentMap.timingpoints.at(i))
                 {
                     next_timingpoint = &gameStat.currentMap.timingpoints.at(i);
                     break;
@@ -600,7 +606,7 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
 
             for (int i = gameStat.currentMap.currentTimeIndex - 1; i >= 0; i--)
             {
-                if (*gameStat.currentMap.getCurrentTimingPoint() != gameStat.currentMap.timingpoints.at(i))
+                if (*current_timingpoint != gameStat.currentMap.timingpoints.at(i))
                 {
                     prev_timingpoint = &gameStat.currentMap.timingpoints.at(i);
                     break;
@@ -617,22 +623,24 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
             if (prev_timingpoint != nullptr)
             {
                 origin.y -= (XMVectorGetY(m_font->MeasureString(textString.c_str())) * 0.325f) / 2;
-                textString = L" " + std::to_wstring(prev_timingpoint->getBPM()) + L"bpm (x" + Utilities::to_wstring_with_precision(prev_timingpoint->velocity, 2) + L") ->";
+                textString = L" " + std::to_wstring(gameStat.GetActualBPM(prev_timingpoint->getBPM())) + L"bpm" + (prev_timingpoint->kiai ? L"☆ " : L" ") + L"(x" + Utilities::to_wstring_with_precision(prev_timingpoint->velocity, 2) + L") ->";
                 m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
                     m_fontPos, Colors::White, 0.f, origin, 0.325f);
                 m_fontPos.x += XMVectorGetX(m_font->MeasureString(textString.c_str())) * 0.325f;
             }
 
             origin.y = 0.f;
-            textString = L" " + std::to_wstring(gameStat.currentMap.currentBpm) + L"bpm (x" + Utilities::to_wstring_with_precision(gameStat.currentMap.currentSpeed, 2) + L")";
+            // gameStat.GetActualBPM(next_timingpoint->getBPM())  gameStat.currentMap.currentBpm
+            textString = L" " + std::to_wstring(gameStat.GetActualBPM(current_timingpoint->getBPM())) + L"bpm" + (current_timingpoint->kiai ? L"☆ " : L" ") + L"(x" + Utilities::to_wstring_with_precision(current_timingpoint->velocity, 2) + L") ";
             m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
                 m_fontPos, Colors::Yellow, 0.f, origin, 0.4f);
             m_fontPos.x += XMVectorGetX(m_font->MeasureString(textString.c_str())) * 0.4f;
 
+            // TODO auto bpm
             if (next_timingpoint != nullptr)
             {
                 origin.y -= (XMVectorGetY(m_font->MeasureString(textString.c_str())) * 0.325f) / 2;
-                textString = L" -> " + std::to_wstring(next_timingpoint->getBPM()) + L"bpm (x" + Utilities::to_wstring_with_precision(next_timingpoint->velocity, 2) + L") -" + Utilities::to_wstring_with_precision(((next_timingpoint->offset - gameStat.osuMapTime) / 1000.f), 2);
+                textString = L" -> " + std::to_wstring(gameStat.GetActualBPM(next_timingpoint->getBPM())) + L"bpm" + (next_timingpoint->kiai ? L"☆ " : L" ") + L"(x" + Utilities::to_wstring_with_precision(next_timingpoint->velocity, 2) + L") -" + Utilities::to_wstring_with_precision(gameStat.GetSecondsFromOsuTime(next_timingpoint->offset - gameStat.osuMapTime), 2) + L"s";
                 m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
                     m_fontPos, Colors::White, 0.f, origin, 0.325f);
             }
@@ -649,9 +657,11 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
 
             std::wstring nds_warning = L"";
 
-            for (std::uint32_t i = gameStat.currentMap.currentObjectIndex; i < gameStat.currentMap.hitobjects.size() && 1000 >= gameStat.osuMapTime - gameStat.currentMap.hitobjects[i].start_time; i--)
+            for (std::uint32_t i = gameStat.currentMap.currentObjectIndex; i < gameStat.currentMap.hitobjects.size() &&
+
+                (gameStat.hasMod(Mods::DoubleTime) || gameStat.hasMod(Mods::Nightcore) ? 1500 : 1000) >= gameStat.osuMapTime - gameStat.currentMap.hitobjects[i].start_time; i--)
                 //(std::uint32_t i = gameStat.currentMap.currentObjectIndex + 1; i < gameStat.currentMap.hitobjects.size() && 1000 >= gameStat.currentMap.hitobjects[i].start_time - gameStat.osuMapTime; i++)
-                //forward 1s
+                //back 1s
             {
                 nds++;
             }
@@ -935,7 +945,9 @@ void Overlay::RenderAssistant(osuGame &gameStat)
      *  cursorStartPoints.y = 12 + 72
      */
 
-    if (gameStat.currentMap.hitobjects.size() == 0 || !(gameStat.currentMap.currentObjectIndex < gameStat.currentMap.hitobjects.size() - 1))
+    if (gameStat.currentMap.hitobjects.size() == 0 ||
+        (!(gameStat.currentMap.currentObjectIndex < gameStat.currentMap.hitobjects.size() - 1) && gameStat.currentMap.hitobjects.back().IsCircle()
+            && (gameStat.currentMap.hitobjects.back().end_time < gameStat.osuMapTime)))
         return;
 
     // disable if want
@@ -951,7 +963,7 @@ void Overlay::RenderAssistant(osuGame &gameStat)
         hitobject *next_object = gameStat.currentMap.getNextHitObject();
         hitobject *upcoming_object = gameStat.currentMap.getUpcomingHitObject();
 
-        if ((std::wstring(gameStat.mfCurrentModsStr->ReadToEnd()).find(L"HD") != std::string::npos) || !gameStat.bOsuIngame) // is hidden or not in game
+        if (gameStat.hasMod(Mods::Hidden) || !gameStat.bOsuIngame) // is hidden or not in game
         {
             std::uint32_t comboIndex = gameStat.currentMap.newComboIndex;
             bool bContinue = true;
@@ -1060,78 +1072,100 @@ void Overlay::RenderAssistant(osuGame &gameStat)
         {
             textString = L">    <";
 
-            m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
-                DirectX::SimpleMath::Vector2(
-                    4 + 257.f + gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex].x * 1.5f, // padding + pixel
-                    84.f + gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex].y * 1.5f
-                ),
-                Colors::LightBlue, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
+            /*
+                Draw the Current hitobject
+            */
 
             m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
-                DirectX::SimpleMath::Vector2(
-                    4 + 257.f + gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 1].x * 1.5f, // padding + pixel
-                    84.f + gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 1].y * 1.5f
-                ),
+                GetScreenCoordFromOsuPixelStandard(gameStat.currentMap.getCurrentHitObject()),
+                Colors::LightBlue, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
+
+            /*
+                Extra stuff for Current Hitobject
+            */
+
+            if (current_object->IsSlider() && current_object->end_time > gameStat.osuMapTime)
+            {
+                Overlay::DrawSlider(*current_object, gameStat.osuMapTime, Colors::LightBlue);
+            }
+            else if (current_object->IsSpinner() && current_object->end_time > gameStat.osuMapTime)
+            {
+                textString = Utilities::to_wstring_with_precision(gameStat.GetSecondsFromOsuTime(current_object->end_time - gameStat.osuMapTime), 1) + L"s";
+
+                m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
+                    GetScreenCoordFromOsuPixelStandard(gameStat.currentMap.getCurrentHitObject()),
+                    Colors::LightBlue, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
+
+                textString = L">    <";
+            }
+
+            if (!(gameStat.currentMap.currentObjectIndex < gameStat.currentMap.hitobjects.size() - 1))
+            {
+                return;
+            }
+
+            m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
+                GetScreenCoordFromOsuPixelStandard(next_object),
                 Colors::Yellow, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
 
             double diffx = (*next_object).x - (*current_object).x;
             double diffy = (*next_object).y - (*current_object).y;
 
-            double time_p = ((double)(gameStat.osuMapTime - gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 1].start_time) / (gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 1].start_time - gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex].start_time));
-            double time_persent = 1.0 + time_p;
+            double time_persent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
 
-            DirectX::SimpleMath::Vector2 v1 = DirectX::SimpleMath::Vector2(
-                257.f + ((*current_object).x + (diffx * (time_persent >= 0 ? time_persent : 0))) * 1.5f,
-                84.f + ((*current_object).y + (diffy * (time_persent >= 0 ? time_persent : 0))) * 1.5f
-            );
+            int32_t start_x = current_object->x, start_y = current_object->y;
 
-            DirectX::SimpleMath::Vector2 v2 = DirectX::SimpleMath::Vector2(
-                257.f + ((*next_object).x - (diffx * 0)) * 1.5f,
-                84.f + ((*next_object).y - (diffy * 0)) * 1.5f
-            );
+            if (current_object->IsSlider())
+            {
+                time_persent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->end_time));
+                start_x = (current_object->repeat % 2) == 0 ? current_object->x : current_object->slidercurves.back().x;
+                start_y = (current_object->repeat % 2) == 0 ? current_object->y : current_object->slidercurves.back().y;
+            }
 
             m_batch->DrawLine(
                 DirectX::VertexPositionColor(
-                    v1, DirectX::Colors::LightBlue
+                    GetScreenCoordFromOsuPixelStandard(start_x, start_y, next_object->x, next_object->y, &time_persent),
+                    DirectX::Colors::LightBlue
                 ),
                 DirectX::VertexPositionColor(
-                    v2, DirectX::Colors::Yellow
+                    GetScreenCoordFromOsuPixelStandard(next_object->x, next_object->y),
+                    DirectX::Colors::Yellow
                 )
             );
+
+            if (next_object->IsSlider())
+            {
+                Overlay::DrawSlider(*next_object, gameStat.osuMapTime, Colors::Yellow);
+            }
 
             if (upcoming_object != nullptr)
             {
                 m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
-                    DirectX::SimpleMath::Vector2(
-                        4 + 257.f + gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 2].x * 1.5f, // padding + pixel
-                        84.f + gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 2].y * 1.5f
-                    ),
+                    GetScreenCoordFromOsuPixelStandard(upcoming_object),
                     Colors::Aqua, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
 
-                double diffx = (*upcoming_object).x - gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 1].x;
-                double diffy = (*upcoming_object).y - gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 1].y;
+                int32_t start_x = next_object->x, start_y = next_object->y;
 
-                double time_p = ((double)(gameStat.osuMapTime - gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 2].start_time) / (gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 2].start_time - gameStat.currentMap.hitobjects[gameStat.currentMap.currentObjectIndex + 1].start_time));
-                double time_persent = 1.0 + time_p;
+                if (next_object->IsSlider())
+                {
+                    start_x = next_object->repeat % 2 == 0 ? next_object->x : next_object->slidercurves.back().x;
+                    start_y = next_object->repeat % 2 == 0 ? next_object->y : next_object->slidercurves.back().y;
 
-                DirectX::SimpleMath::Vector2 v1 = DirectX::SimpleMath::Vector2(
-                    257.f + (((*next_object).x) + (diffx * (time_persent > 0 ? time_persent : 0))) * 1.5f,
-                    84.f + (((*next_object).y) + (diffy * (time_persent > 0 ? time_persent : 0))) * 1.5f
-                );
-
-                // next_object.IsSlider() ? next_object.slidercurves[next_object.slidercurves.size() - 1].x : next_object.x
-
-                DirectX::SimpleMath::Vector2 v2 = DirectX::SimpleMath::Vector2(
-                    257.f + ((*upcoming_object).x - (diffx * 0)) * 1.5f,
-                    84.f + ((*upcoming_object).y - (diffy * 0)) * 1.5f
-                );
+                    /*
+                    m_font->DrawString(m_spriteBatch.get(), L"- -",
+                        GetScreenCoordFromOsuPixelStandard(start_x, start_y),
+                        Colors::Yellow, 0.f, m_font->MeasureString(L"- -") * 0.6f, 0.6f);
+                     */
+                }
 
                 m_batch->DrawLine(
                     DirectX::VertexPositionColor(
-                        v1, DirectX::Colors::Yellow
+                        GetScreenCoordFromOsuPixelStandard(start_x, start_y),
+                        DirectX::Colors::Yellow
                     ),
                     DirectX::VertexPositionColor(
-                        v2, DirectX::Colors::Aqua
+                        GetScreenCoordFromOsuPixelStandard(upcoming_object),
+                        DirectX::Colors::Aqua
                     )
                 );
             }
@@ -1195,6 +1229,131 @@ void Overlay::RenderAssistant(osuGame &gameStat)
         }
         break;
     }
+    }
+}
+
+void Overlay::DebugDrawSliderPoints(int x, int y, std::vector<slidercurve> &points, DirectX::XMVECTORF32 color)
+{
+    int x1 = x, y1 = y, x2, y2, num = 0;
+
+    for (const slidercurve &point : points)
+    {
+        if (x1 == point.x && y1 == point.y)
+        {
+            num = 0;
+            continue;
+        }
+
+        x2 = point.x;
+        y2 = point.y;
+
+        m_batch->DrawLine(
+            DirectX::VertexPositionColor(
+                GetScreenCoordFromOsuPixelStandard(x1, y1), color
+            ),
+            DirectX::VertexPositionColor(
+                GetScreenCoordFromOsuPixelStandard(x2, y2), color
+            )
+        );
+
+        m_font->DrawString(m_spriteBatch.get(), std::to_wstring(num).c_str(),
+            GetScreenCoordFromOsuPixelStandard(x2, y2),
+            color, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.3);
+
+        num++;
+
+        x1 = x2;
+        y1 = y2;
+    }
+}
+
+DirectX::SimpleMath::Vector2 Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 color)
+{
+    if (!object.IsSlider())
+        return DirectX::SimpleMath::Vector2(0, 0);
+
+    std::vector<slidercurve> curves;
+    slidercurve init_curve;
+    DirectX::SimpleMath::Vector2 end_point = DirectX::SimpleMath::Vector2(1, 1);
+
+    init_curve.x = object.x;
+    init_curve.y = object.y;
+
+    double length_left = object.pixel_length;
+
+    OutputDebugStringW(L"DrawSlider: slidercurvesize: ");
+    OutputDebugStringW(std::to_wstring(object.slidercurves.size()).c_str());
+    OutputDebugStringW(L" type: ");
+    OutputDebugStringW(object.slidertype.c_str());
+    OutputDebugStringW(L"\n");
+
+    if (object.slidertype == L"B")
+    {
+        for (int32_t i = 0; i < object.slidercurves.size(); i++)
+        {
+            if (curves.size() != 0 && curves.back() == object.slidercurves.at(i))
+            {
+                DrawSliderPartBiezer(init_curve, curves, length_left, color);
+                init_curve = object.slidercurves.at(i);
+                curves.clear();
+            }
+            curves.push_back(object.slidercurves.at(i));
+        }
+
+        DrawSliderPartBiezer(init_curve, curves, length_left, color, 0.0f);
+    }
+    else if (object.slidertype == L"L")
+    {
+        //DrawSliderLinear
+        DebugDrawSliderPoints(
+            object.x,
+            object.y,
+            object.slidercurves,
+            color
+        );
+    }
+    else if (object.slidertype == L"P")
+    {
+        //PerfectCircle
+        DebugDrawSliderPoints(
+            object.x,
+            object.y,
+            object.slidercurves,
+            color
+        );
+    }
+    else
+    {
+        DebugDrawSliderPoints(object.x, object.y, object.slidercurves, color);
+    }
+
+    return end_point;  // should be sliderend
+}
+
+void Overlay::DrawSliderPartBiezer(slidercurve &init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion, DirectX::SimpleMath::Vector2 *vec)
+{
+    std::vector<int> x_p, y_p;
+    x_p.push_back(init_point.x);
+    y_p.push_back(init_point.y);
+    for (int i = 0; i < curves.size(); i++)
+    {
+        x_p.push_back(curves.at(i).x);
+        y_p.push_back(curves.at(i).y);
+//        dist_left -= curves.at(i).x 
+    }
+
+    for (double t = 0; t <= 1; t += 0.001)
+    {
+        int x = Utilities::getBezierPoint(&x_p, t);
+        int y = Utilities::getBezierPoint(&y_p, t);
+
+        m_batch->Draw(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST,
+            &DirectX::VertexPositionColor(
+                GetScreenCoordFromOsuPixelStandard(x, y),
+                color
+            ),
+            1
+        );
     }
 }
 

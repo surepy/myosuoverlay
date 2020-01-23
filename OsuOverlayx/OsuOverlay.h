@@ -5,6 +5,7 @@
 #include "StepTimer.h"
 #include "OsuOverlay.h"
 #include "OsuGame.h"
+#include <Math.h>
 
 // A basic game implementation that creates a D3D11 device and
 // provides a game loop.
@@ -43,6 +44,90 @@ private:
     void RenderStatTexts(osuGame &gameStat);
     DirectX::XMVECTOR RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &fontPos, DirectX::XMVECTORF32 tColor = DirectX::Colors::White, DirectX::XMVECTORF32 bgColor = DirectX::Colors::Black, int v = 1, float fontsize = 0.5f);
     void RenderAssistant(osuGame &gameStat);
+
+    void DebugDrawSliderPoints(int x, int y, std::vector<slidercurve> &points, DirectX::XMVECTORF32 color = DirectX::Colors::White);
+
+    /**
+        Gets Actual Screen coords from osupixel
+    */
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t &x, int32_t &y)
+    {
+        return DirectX::SimpleMath::Vector2(
+            257.f + x * 1.5f,
+            84.f + y * 1.5f
+        );
+    }
+
+    inline DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(hitobject *obj)
+    {
+        return GetScreenCoordFromOsuPixelStandard(obj->x, obj->y);
+    }
+
+    /**
+        Gets Actual Screen coords from osupixel, this one is used for reading lines completion%
+    */
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t &x1, int32_t &y1, int32_t &x2, int32_t &y2, double_t *inv_completion)
+    {
+        return DirectX::SimpleMath::Vector2(
+            257.f + (x1 + ((x2 - x1) * static_cast<float_t>(std::clamp(*inv_completion, 0.0, 1.0)))) * 1.5f,
+            84.f + (y1 + ((y2 - y1) * static_cast<float_t>(std::clamp(*inv_completion, 0.0, 1.0)))) * 1.5f
+        );
+    }
+
+    /**
+        Gets Actual Screen coords from osupixel, this one is used for reading lines completion%
+    */
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t &x1, int32_t &y1, int32_t &x2, int32_t &y2, float_t *inv_completion)
+    {
+        return DirectX::SimpleMath::Vector2(
+            257.f + (x1 + ((x2 - x1) * std::clamp(*inv_completion, 0.f, 1.f))) * 1.5f,
+            84.f + (y1 + ((y2 - y1) * std::clamp(*inv_completion, 0.f, 1.f))) * 1.5f
+        );
+    }
+
+    DirectX::SimpleMath::Vector2 DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 color);
+
+    inline void DrawSliderLinear(slidercurve& init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion = 0.f, DirectX::SimpleMath::Vector2 *vec = nullptr);
+
+    void DrawSliderPartBiezer(slidercurve& init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion = 0.f, DirectX::SimpleMath::Vector2 *vec = nullptr);
+
+    //  literally if there's more control points than this the mapper is fucking stupid
+
+    void DrawCircleIWantToKillMyself(int32_t radius = 200)
+    {
+        float x, y, i;
+
+        //        DirectX::VertexPositionColor verticies[360];
+
+                // iterate y up to 2*pi, i.e., 360 degree
+                // with small increment in angle as
+                // glVertex2i just draws a point on specified co-ordinate
+        for (i = 0; i < (2 * (atan(1) * 4)); i += 0.001)
+        {
+            // let 200 is radius of circle and as,
+            // circle is defined as x=r*cos(i) and y=r*sin(i)
+            x = (radius * cos(i)) + (m_outputWidth / 2);
+            y = (radius * sin(i)) + (m_outputHeight / 2);
+
+            /*verticies[b] = DirectX::VertexPositionColor(
+                DirectX::SimpleMath::Vector2(x, y),
+                DirectX::Colors::White
+            );*/
+
+            m_batch->Draw(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST,
+                &DirectX::VertexPositionColor(
+                    DirectX::SimpleMath::Vector2(x, y),
+                    DirectX::Colors::White
+                ),
+                1
+            );
+        }
+
+        /*m_batch->Draw(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST,
+            verticies,
+            360
+        );*/
+    }
 
     void Clear();
     void Present();
