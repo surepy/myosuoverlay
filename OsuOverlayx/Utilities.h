@@ -71,13 +71,13 @@ public:
         return ((double)factorial(n) / (double)(factorial((n - k)) * factorial(k)));
     }
 
-    static int getBezierPoint(std::vector<int> *points, double t) {
-        int answer = 0;
+    static double getBezierPoint(std::vector<int> *points, double t) {
+        double answer = 0;
         int n = points->size() - 1;
 
         for (int i = 0; i < points->size(); i++)
         {
-            answer += (binomialCoeff(n, i) *  std::pow((1 - t), (n - i))  * std::pow(t, i) * points->at(i));
+            answer += (binomialCoeff(n, i) *  std::pow((1 - t), (n - i))  * std::pow(t, i) * (double)points->at(i));
         }
         return answer;
     }

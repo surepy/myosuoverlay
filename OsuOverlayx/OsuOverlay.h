@@ -58,6 +58,14 @@ private:
         );
     }
 
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(double_t &x, double_t &y)
+    {
+        return DirectX::SimpleMath::Vector2(
+            257.f + (float)x * 1.5f,
+            84.f + (float)y * 1.5f
+        );
+    }
+
     inline DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(hitobject *obj)
     {
         return GetScreenCoordFromOsuPixelStandard(obj->x, obj->y);

@@ -1332,29 +1332,33 @@ DirectX::SimpleMath::Vector2 Overlay::DrawSlider(hitobject &object, int32_t &tim
 
 void Overlay::DrawSliderPartBiezer(slidercurve &init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion, DirectX::SimpleMath::Vector2 *vec)
 {
+    int size = curves.size();
     std::vector<int> x_p, y_p;
+    std::vector<DirectX::VertexPositionColor> lines;
     x_p.push_back(init_point.x);
     y_p.push_back(init_point.y);
     for (int i = 0; i < curves.size(); i++)
     {
         x_p.push_back(curves.at(i).x);
         y_p.push_back(curves.at(i).y);
-//        dist_left -= curves.at(i).x 
+        //        dist_left -= curves.at(i).x
     }
 
-    for (double t = 0; t <= 1; t += 0.001)
+    for (double t = 0; t <= 1; t += 0.1)
     {
-        int x = Utilities::getBezierPoint(&x_p, t);
-        int y = Utilities::getBezierPoint(&y_p, t);
+        double x = Utilities::getBezierPoint(&x_p, t);
+        double y = Utilities::getBezierPoint(&y_p, t);
 
-        m_batch->Draw(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST,
-            &DirectX::VertexPositionColor(
-                GetScreenCoordFromOsuPixelStandard(x, y),
-                color
-            ),
-            1
-        );
+        lines.push_back(DirectX::VertexPositionColor(
+            GetScreenCoordFromOsuPixelStandard(x, y),
+            color
+        ));
     }
+
+    m_batch->Draw(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP,
+        lines.data(),
+        lines.size()
+    );
 }
 
 XMVECTOR Overlay::RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &fontPos, DirectX::XMVECTORF32 tColor, DirectX::XMVECTORF32 bgColor, int v, float fontsize)
