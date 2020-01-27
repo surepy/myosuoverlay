@@ -40,8 +40,9 @@ inline bool beatmap::ParseTimingPoint(std::vector<std::wstring>& values) {
     try {
         offset = std::stoi(values.at(0));
     }
-    catch (std::out_of_range)
+    catch (const std::out_of_range& e)
     {
+        UNREFERENCED_PARAMETER(e);
         offset = 0;
     }
 
@@ -51,8 +52,9 @@ inline bool beatmap::ParseTimingPoint(std::vector<std::wstring>& values) {
     try {
         ms_per_beat = std::stof(values.at(1));
     }
-    catch (std::out_of_range)
+    catch (const std::out_of_range& e)
     {
+        UNREFERENCED_PARAMETER(e);
         ms_per_beat = 1;
     }
 
@@ -179,6 +181,32 @@ inline bool beatmap::ParseDifficultySettings(std::wstring difficulty_line) {
     return true;
 }
 
+inline bool beatmap::ParseMetaData(std::wstring difficulty_line) {
+    std::vector<std::wstring> values;
+
+    if (split_line(difficulty_line, ':', values)) {
+        if (!_wcsicmp(values[0].c_str(), L"BeatmapID")) {
+            this->BeatMapID = std::stoi(values[1]);
+        }
+        else if (!_wcsicmp(values[0].c_str(), L"BeatmapSetID")) {
+            this->BeatmapSetID = std::stoi(values[1]);
+        }
+        else if (!_wcsicmp(values[0].c_str(), L"Artist")) {
+            this->Artist = values[1];
+        }
+        else if (!_wcsicmp(values[0].c_str(), L"Title")) {
+            this->Title = values[1];
+        }
+        else if (!_wcsicmp(values[0].c_str(), L"Creator")) {
+            this->Creator = values[1];
+        }
+        else if (!_wcsicmp(values[0].c_str(), L"Version")) {
+            this->Version = values[1];
+        }
+    }
+    return true;
+}
+
 bool beatmap::Parse(std::wstring filename) {
     std::wifstream beatmap_file(filename, std::ifstream::in);
 
@@ -191,10 +219,12 @@ bool beatmap::Parse(std::wstring filename) {
     while (std::getline(beatmap_file, current_line)) {
         static std::wstring current_section;
 
+        /*
         OutputDebugStringW(current_section.c_str());
         OutputDebugStringW(L" ");
         OutputDebugStringW(current_line.c_str());
         OutputDebugStringW(L"\n");
+        */
 
         if (!current_line.empty() && current_line.front() == '[' && current_line.back() == ']') {
             current_section = current_line.substr(1, current_line.length() - 2);
@@ -211,6 +241,9 @@ bool beatmap::Parse(std::wstring filename) {
         }
         else if (!current_section.compare(L"Difficulty")) {
             this->ParseDifficultySettings(current_line);
+        }
+        else if (!current_section.compare(L"Metadata")) {
+            this->ParseMetaData(current_line);
         }
         else {
             std::vector<std::wstring> values;

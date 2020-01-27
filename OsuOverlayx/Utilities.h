@@ -6,6 +6,8 @@
 #include <iomanip>
 #include <strsafe.h>
 #include <iostream>
+#include "SimpleMath.h"
+#include "Beatmap.h"
 
 class Utilities {
 public:
@@ -80,6 +82,24 @@ public:
             answer += (binomialCoeff(n, i) *  std::pow((1 - t), (n - i))  * std::pow(t, i) * (double)points->at(i));
         }
         return answer;
+    }
+
+    /*static DirectX::SimpleMath::Vector2 getBezierPoint()
+    {
+    }*/
+    inline static DirectX::SimpleMath::Vector2 SliderCurveToVector2(slidercurve point)
+    {
+        return DirectX::SimpleMath::Vector2(point.x, point.y);
+    }
+
+    static DirectX::SimpleMath::Vector2 ClampVector2Magnitude(DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &vector, double length)
+    {
+        double vec_length = DirectX::SimpleMath::Vector2::Distance(origin, vector);
+
+        if (vec_length > length) {
+            return origin + ((vector - origin) * (length / vec_length));
+        }
+        return vector;
     }
 
     template <typename T>

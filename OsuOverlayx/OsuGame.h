@@ -115,7 +115,7 @@ struct osuGame {
         hOsu = nullptr;
         pOsuMapTime = NULL;
         pOsuFramedelay = NULL;
-        pOsuGlobalGameMode = NULL;
+        pOsuGameMode = NULL;
     }
 
     void CheckLoaded()
@@ -144,15 +144,6 @@ struct osuGame {
 
         //Signatures::TIME
         // time
-        ptr = Signatures::FindPattern(hOsu, Signatures::TIME, Signatures::TIME_MASK, Signatures::TIME_OFFSET, 0);
-        if (ptr == NULL)
-            OutputDebugStringW(L"time sig not found!\n");
-        else
-        {
-            ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD, nullptr);
-            pOsuMapTime = addr;
-        }
-
         ptr = Signatures::FindPattern(hOsu, Signatures::FRAME_DELAY, Signatures::FRAME_DELAY_MASK, Signatures::FRAME_DELAY_OFFSET, 0);
         if (ptr == NULL)
             OutputDebugStringW(L"fps sig not found!\n");
@@ -162,31 +153,40 @@ struct osuGame {
             pOsuFramedelay = addr;
         }
 
-        ptr = Signatures::FindPattern(hOsu, Signatures::GAMEMODE_GLOBAL, Signatures::GAMEMODE_GLOBAL_MASK, Signatures::GAMEMODE_GLOBAL_OFFSET, 0);
+        ptr = Signatures::FindPattern(hOsu, Signatures::OSU_BASE, Signatures::OSU_BASE_MASK, Signatures::OSU_BASE_OFFSET, 0);
         if (ptr == NULL)
-            OutputDebugStringW(L"GameMode sig not found!\n");
+            OutputDebugStringW(L"base sig not found!\n");
         else
         {
             ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD, nullptr);
-            pOsuGlobalGameMode = addr;
+            pBase = addr;
+
+            /* = uses gamemode offset = */
+            /* gamemode */
+            ReadProcessMemory(hOsu, LPCVOID(ptr + Signatures::GAMEMODE_OFFSET), &addr, sizeof DWORD, nullptr);
+            pOsuGameMode = addr;
+
+            /* Retrys?? */
+            ReadProcessMemory(hOsu, LPCVOID(ptr + Signatures::GAMEMODE_OFFSET), &addr, sizeof DWORD, nullptr);
+            pTemp = addr + Signatures::RETRYS_PTR_OFFSET[0];
+
+            /* = uses beatmap offset = */
+            /* Beatmap?? */
+            ReadProcessMemory(hOsu, LPCVOID(ptr + Signatures::BEATMAP_DATA_OFFSET), &addr, sizeof DWORD, nullptr);
+            pBeatmapData = addr;
+
+            /* */
+            ReadProcessMemory(hOsu, LPCVOID(ptr + Signatures::BEATMAP_DATA_OFFSET), &addr, sizeof DWORD, nullptr);
+            pBeatmapData = addr;
         }
 
-        ptr = Signatures::FindPattern(hOsu, Signatures::INPUT_COUNTER, Signatures::INPUT_COUNTER_MASK, Signatures::INPUT_COUNTER_OFFSET, 0);
+        ptr = Signatures::FindPattern(hOsu, Signatures::TIME, Signatures::TIME_MASK, Signatures::TIME_OFFSET, 0);
         if (ptr == NULL)
-            OutputDebugStringW(L"input sig not found!\n");
+            OutputDebugStringW(L"time sig not found!\n");
         else
         {
             ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD, nullptr);
-            pInput = addr;
-        }
-
-        ptr = Signatures::FindPattern(hOsu, Signatures::MODS, Signatures::MODS_MASK, Signatures::MODS_OFFSET, 0);
-        if (ptr == NULL)
-            OutputDebugStringW(L"mod sig not found!\n");
-        else
-        {
-            ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD, nullptr);
-            pMods = addr;
+            pOsuMapTime = addr;
         }
 
         bOsuLoaded = true;
@@ -235,11 +235,15 @@ struct osuGame {
 
     bool bOsuLoading = false;
     bool bOsuLoaded = false;
-    DWORD pOsuMapTime;
+
+    DWORD pInput; // ?
     DWORD pOsuFramedelay;
-    DWORD pOsuGlobalGameMode;
-    DWORD pInput;
+    DWORD pBase;
+    DWORD pOsuMapTime;
+    DWORD pOsuGameMode;
     DWORD pMods;
+    DWORD pBeatmapData;
+    DWORD pTemp;
 
     std::chrono::milliseconds currentTime;
     std::chrono::milliseconds previousDistTime;

@@ -58,6 +58,9 @@ struct hitobject {
 
     std::vector<slidercurve> slidercurves;
     std::wstring slidertype;
+
+    int32_t x_sliderend_real;
+    int32_t y_sliderend_real;
 };
 
 struct timingpoint {
@@ -96,6 +99,7 @@ private:
     bool ParseHitObject(std::vector<std::wstring>& values);
     bool ParseDifficultySettings(std::wstring difficulty_line);
     bool ParseGeneral(std::wstring difficulty_line);
+    bool ParseMetaData(std::wstring difficulty_line);
 public:
     bool Parse(std::wstring filename);
 
@@ -103,6 +107,13 @@ public:
 
     // the map itself
 public:
+    int BeatMapID;
+    int BeatmapSetID;
+    std::wstring Title;
+    std::wstring Artist;
+    std::wstring Creator;
+    std::wstring Version;
+
     int Mode;
 
     float CircleSize; //  note: this is amount of rows in mania.
@@ -119,21 +130,36 @@ public:
         standard macros
     */
     hitobject* getCurrentHitObject() {
-        return &this->hitobjects[this->currentObjectIndex];
+        try {
+            return &this->hitobjects[this->currentObjectIndex];
+        }
+        catch (const std::out_of_range& e)
+        {
+            (e);
+            return nullptr;
+        }
     };
 
     hitobject* getNextHitObject() {
         try {
             return &this->hitobjects.at(this->currentObjectIndex + 1);
         }
-        catch (std::out_of_range) { return nullptr; }
+        catch (const std::out_of_range& e)
+        {
+            (e);
+            return nullptr;
+        }
     };
 
     hitobject* getUpcomingHitObject() {
         try {
             return &this->hitobjects.at(this->currentObjectIndex + 2);
         }
-        catch (std::out_of_range) { return nullptr; }
+        catch (const std::out_of_range& e)
+        {
+            (e);
+            return nullptr;
+        }
     };
 
     /*
@@ -141,7 +167,14 @@ public:
     */
     hitobject* getCurrentHitObject(int row)
     {
-        return &this->hitobjects_sorted[row][this->currentObjectIndex_sorted[row]];
+        try {
+            return &this->hitobjects_sorted[row][this->currentObjectIndex_sorted[row]];
+        }
+        catch (const std::out_of_range& e)
+        {
+            (e);
+            return nullptr;
+        }
     };
 
     hitobject* getNextHitObject(int row)
@@ -149,7 +182,11 @@ public:
         try {
             return &this->hitobjects_sorted[row].at(this->currentObjectIndex_sorted[row] + 1);
         }
-        catch (std::out_of_range) { return nullptr; }
+        catch (const std::out_of_range& e)
+        {
+            (e);
+            return nullptr;
+        }
     };
 
     hitobject* getUpcomingHitObject(int row)
@@ -157,10 +194,24 @@ public:
         try {
             return &this->hitobjects_sorted[row].at(this->currentObjectIndex_sorted[row] + 2);
         }
-        catch (std::out_of_range) { return nullptr; }
+        catch (const std::out_of_range& e)
+        {
+            (e);
+            return nullptr;
+        }
     };
 
-    timingpoint* getCurrentTimingPoint() { return &this->timingpoints[this->currentTimeIndex]; };
+    timingpoint* getCurrentTimingPoint()
+    {
+        try {
+            return &this->timingpoints.at(this->currentTimeIndex);
+        }
+        catch (const std::out_of_range& e)
+        {
+            (e);
+            return nullptr;
+        }
+    };
 
     std::wstring loadedMap = L"";
     std::uint32_t currentObjectIndex = 0;

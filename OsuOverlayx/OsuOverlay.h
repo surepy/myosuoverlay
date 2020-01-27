@@ -58,6 +58,14 @@ private:
         );
     }
 
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(DirectX::SimpleMath::Vector2& vec)
+    {
+        return DirectX::SimpleMath::Vector2(
+            257.f + vec.x * 1.5f,
+            84.f + vec.y * 1.5f
+        );
+    }
+
     DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(double_t &x, double_t &y)
     {
         return DirectX::SimpleMath::Vector2(
@@ -93,13 +101,13 @@ private:
         );
     }
 
-    DirectX::SimpleMath::Vector2 DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 color);
+    void DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 color);
 
-    inline void DrawSliderLinear(slidercurve& init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion = 0.f, DirectX::SimpleMath::Vector2 *vec = nullptr);
+    inline void DrawSliderLinear(slidercurve& init_point, slidercurve &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion = 0.f, DirectX::SimpleMath::Vector2 *vec = nullptr);
 
     void DrawSliderPartBiezer(slidercurve& init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion = 0.f, DirectX::SimpleMath::Vector2 *vec = nullptr);
 
-    //  literally if there's more control points than this the mapper is fucking stupid
+    void DrawSliderPerfectCircle();
 
     void DrawCircleIWantToKillMyself(int32_t radius = 200)
     {

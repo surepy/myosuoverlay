@@ -271,7 +271,7 @@ void Overlay::Tick(osuGame &gameStat)
     if (gameStat.bOsuIngame)
     {
         std::int32_t osu_gmode;
-        ReadProcessMemory(gameStat.hOsu, LPCVOID(gameStat.pOsuGlobalGameMode), &osu_gmode, sizeof std::int32_t, nullptr);
+        ReadProcessMemory(gameStat.hOsu, LPCVOID(gameStat.pOsuGameMode), &osu_gmode, sizeof std::int32_t, nullptr);
         gameStat.gameMode = static_cast<PlayMode>(osu_gmode);
     }
     else {
@@ -454,14 +454,14 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
     if (!gameStat.hOsu)
     {
         m_font->DrawString(m_spriteBatch.get(), L"Game not detected!",
-            DirectX::SimpleMath::Vector2(0.f, 30.f),
+            DirectX::SimpleMath::Vector2(0.f, 90.f),
             Colors::White, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 0.4f);
         return;
     }
     else if (!gameStat.bOsuLoaded && gameStat.hOsu)
     {
-        m_font->DrawString(m_spriteBatch.get(), L"Loading game.. please be patient! (10s+)",
-            DirectX::SimpleMath::Vector2(0.f, 30.f),
+        m_font->DrawString(m_spriteBatch.get(), L"Loading game.. one second! (10s+)",
+            DirectX::SimpleMath::Vector2(0.f, 90.f),
             Colors::White, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 0.4f);
         if (!gameStat.bOsuLoading)
         {
@@ -474,13 +474,30 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
     if (!gameStat.bStreamCompanionRunning)
     {
         m_font->DrawString(m_spriteBatch.get(), L"StreamCompanion is not running!",
-            DirectX::SimpleMath::Vector2(0.f, 30.f),
+            DirectX::SimpleMath::Vector2(0.f, 90.f),
             Colors::White, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 0.4f);
         return;
     }
 
+    DirectX::SimpleMath::Vector2 origin = DirectX::SimpleMath::Vector2(0.f, 0.f);
+
     if (!gameStat.bOsuIngame)
+    {
+        timingpoint *current_timingpoint = gameStat.currentMap.getCurrentTimingPoint();
+        if (current_timingpoint == nullptr)
+            return;
+        std::wstring str = std::to_wstring(gameStat.GetActualBPM(current_timingpoint->getBPM())) + L"bpm" + (current_timingpoint->kiai ? L"☆ " : L" ") + L"(x" + Utilities::to_wstring_with_precision(current_timingpoint->velocity, 2) + L") id: " + std::to_wstring(gameStat.currentMap.BeatMapID);
+
+        m_font->DrawString(m_spriteBatch.get(),
+            str.c_str(),
+            DirectX::SimpleMath::Vector2(-1.f, 90.f),
+            Colors::Yellow,
+            0.f,
+            DirectX::SimpleMath::Vector2(0.f, 0.f),
+            0.4f
+        );
         return;
+    }
 
     XMVECTORF32 beat_color = Colors::Yellow;
 
@@ -499,8 +516,6 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
         beat_color = Colors::AliceBlue;
         break;
     }
-
-    DirectX::SimpleMath::Vector2 origin;
 
     switch (gameStat.gameMode)
     {
@@ -1070,6 +1085,8 @@ void Overlay::RenderAssistant(osuGame &gameStat)
         }
         else
         {
+            DirectX::SimpleMath::Vector2 slider_end;
+
             textString = L">    <";
 
             /*
@@ -1108,9 +1125,6 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                 GetScreenCoordFromOsuPixelStandard(next_object),
                 Colors::Yellow, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
 
-            double diffx = (*next_object).x - (*current_object).x;
-            double diffy = (*next_object).y - (*current_object).y;
-
             double time_persent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
 
             int32_t start_x = current_object->x, start_y = current_object->y;
@@ -1118,8 +1132,8 @@ void Overlay::RenderAssistant(osuGame &gameStat)
             if (current_object->IsSlider())
             {
                 time_persent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->end_time));
-                start_x = (current_object->repeat % 2) == 0 ? current_object->x : current_object->slidercurves.back().x;
-                start_y = (current_object->repeat % 2) == 0 ? current_object->y : current_object->slidercurves.back().y;
+                start_x = (current_object->repeat % 2) == 0 ? current_object->x : current_object->x_sliderend_real;
+                start_y = (current_object->repeat % 2) == 0 ? current_object->y : current_object->y_sliderend_real;
             }
 
             m_batch->DrawLine(
@@ -1148,8 +1162,8 @@ void Overlay::RenderAssistant(osuGame &gameStat)
 
                 if (next_object->IsSlider())
                 {
-                    start_x = next_object->repeat % 2 == 0 ? next_object->x : next_object->slidercurves.back().x;
-                    start_y = next_object->repeat % 2 == 0 ? next_object->y : next_object->slidercurves.back().y;
+                    start_x = next_object->repeat % 2 == 0 ? next_object->x : next_object->x_sliderend_real;
+                    start_y = next_object->repeat % 2 == 0 ? next_object->y : next_object->y_sliderend_real;
 
                     /*
                     m_font->DrawString(m_spriteBatch.get(), L"- -",
@@ -1158,13 +1172,16 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                      */
                 }
 
+                time_persent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
+                time_persent = time_persent * 4;
+
                 m_batch->DrawLine(
                     DirectX::VertexPositionColor(
                         GetScreenCoordFromOsuPixelStandard(start_x, start_y),
                         DirectX::Colors::Yellow
                     ),
                     DirectX::VertexPositionColor(
-                        GetScreenCoordFromOsuPixelStandard(upcoming_object),
+                        GetScreenCoordFromOsuPixelStandard(start_x, start_y, upcoming_object->x, upcoming_object->y, &time_persent),
                         DirectX::Colors::Aqua
                     )
                 );
@@ -1267,10 +1284,10 @@ void Overlay::DebugDrawSliderPoints(int x, int y, std::vector<slidercurve> &poin
     }
 }
 
-DirectX::SimpleMath::Vector2 Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 color)
+void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 color)
 {
     if (!object.IsSlider())
-        return DirectX::SimpleMath::Vector2(0, 0);
+        return;
 
     std::vector<slidercurve> curves;
     slidercurve init_curve;
@@ -1281,16 +1298,30 @@ DirectX::SimpleMath::Vector2 Overlay::DrawSlider(hitobject &object, int32_t &tim
 
     double length_left = object.pixel_length;
 
+    //double time_persent = 1.0 + ((double)(time - object.start_time) / (object.start_time - object.end_time));
+
+    int32_t time_left = object.end_time - time;
+    double slider_time_actual = ((object.end_time - object.start_time) / object.repeat);
+    double start_time_actual = object.start_time + ((object.end_time - object.start_time) / object.repeat) * (object.repeat - 1);
+    double time_till_actual_start = start_time_actual - time;
+
+    /*
     OutputDebugStringW(L"DrawSlider: slidercurvesize: ");
     OutputDebugStringW(std::to_wstring(object.slidercurves.size()).c_str());
     OutputDebugStringW(L" type: ");
     OutputDebugStringW(object.slidertype.c_str());
-    OutputDebugStringW(L"\n");
+    OutputDebugStringW(L"\n");*/
+    int32_t a = 1000, b = 1000;
+    m_font->DrawString(m_spriteBatch.get(), (object.slidertype + L" " + std::to_wstring(time_left)).c_str(),
+        GetScreenCoordFromOsuPixelStandard(&object),
+        color, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.3);
 
     if (object.slidertype == L"B")
     {
         for (int32_t i = 0; i < object.slidercurves.size(); i++)
         {
+            //double time = i * timePerSection;
+
             if (curves.size() != 0 && curves.back() == object.slidercurves.at(i))
             {
                 DrawSliderPartBiezer(init_curve, curves, length_left, color);
@@ -1300,17 +1331,36 @@ DirectX::SimpleMath::Vector2 Overlay::DrawSlider(hitobject &object, int32_t &tim
             curves.push_back(object.slidercurves.at(i));
         }
 
-        DrawSliderPartBiezer(init_curve, curves, length_left, color, 0.0f);
+        DrawSliderPartBiezer(init_curve, curves, length_left, color, 0.0f, &end_point);
+
+        /*DebugDrawSliderPoints(
+            object.x,
+            object.y,
+            object.slidercurves,
+            Colors::Blue
+        );*/
+
+        //temp
+        end_point = Utilities::SliderCurveToVector2(object.slidercurves.back());
     }
     else if (object.slidertype == L"L")
     {
-        //DrawSliderLinear
-        DebugDrawSliderPoints(
+        slidercurve first_curve = init_curve;
+        float inv_completion_total = std::clamp((1.f + (float)((float)(time - start_time_actual) / (start_time_actual - object.end_time))), 0.f, 1.f);
+
+        for (int i = 0; i < object.slidercurves.size(); i++)
+        {
+            //float section_completion = ((time_left - start_time_actual) - (i * (slider_time_actual / object.slidercurves.size())));
+            DrawSliderLinear(first_curve, object.slidercurves.at(i), length_left, color, 0.0f, &end_point);
+            first_curve = object.slidercurves.at(i);
+        }
+
+        /*DebugDrawSliderPoints(
             object.x,
             object.y,
             object.slidercurves,
             color
-        );
+        );*/
     }
     else if (object.slidertype == L"P")
     {
@@ -1321,13 +1371,47 @@ DirectX::SimpleMath::Vector2 Overlay::DrawSlider(hitobject &object, int32_t &tim
             object.slidercurves,
             color
         );
+
+        //temp
+        end_point = Utilities::SliderCurveToVector2(object.slidercurves.back());
     }
     else
     {
         DebugDrawSliderPoints(object.x, object.y, object.slidercurves, color);
+
+        //temp
+        end_point = Utilities::SliderCurveToVector2(object.slidercurves.back());
     }
 
-    return end_point;  // should be sliderend
+    object.x_sliderend_real = end_point.x;
+    object.y_sliderend_real = end_point.y;
+    return;  // should be sliderend
+}
+
+/**
+
+*/
+inline void Overlay::DrawSliderLinear(slidercurve &init_point, slidercurve &curve, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion, DirectX::SimpleMath::Vector2 *vec)
+{
+    DirectX::SimpleMath::Vector2 init_pt = Utilities::SliderCurveToVector2(init_point),
+        curve_pt = Utilities::SliderCurveToVector2(curve);
+
+    DirectX::SimpleMath::Vector2 vec_final = Utilities::ClampVector2Magnitude(init_pt, curve_pt, dist_left);
+
+    double x1 = init_point.x + vec_final.x * inv_completion,
+        y1 = init_point.y + vec_final.y * inv_completion;
+
+    m_batch->DrawLine(
+        DirectX::VertexPositionColor(
+            GetScreenCoordFromOsuPixelStandard(x1, y1), color
+        ),
+        DirectX::VertexPositionColor(
+            GetScreenCoordFromOsuPixelStandard(vec_final), color
+        )
+    );
+
+    *vec = vec_final;
+    dist_left -= DirectX::SimpleMath::Vector2::Distance(init_pt, curve_pt);
 }
 
 void Overlay::DrawSliderPartBiezer(slidercurve &init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion, DirectX::SimpleMath::Vector2 *vec)
@@ -1341,10 +1425,10 @@ void Overlay::DrawSliderPartBiezer(slidercurve &init_point, std::vector<slidercu
     {
         x_p.push_back(curves.at(i).x);
         y_p.push_back(curves.at(i).y);
-        //        dist_left -= curves.at(i).x
+        //  dist_left -= curves.at(i).x
     }
 
-    for (double t = 0; t <= 1; t += 0.1)
+    for (double t = inv_completion; t <= 1; t += 0.1)
     {
         double x = Utilities::getBezierPoint(&x_p, t);
         double y = Utilities::getBezierPoint(&y_p, t);
@@ -1355,10 +1439,18 @@ void Overlay::DrawSliderPartBiezer(slidercurve &init_point, std::vector<slidercu
         ));
     }
 
-    m_batch->Draw(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP,
-        lines.data(),
-        lines.size()
-    );
+    if (lines.size() > 0)
+    {
+        m_batch->Draw(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP,
+            lines.data(),
+            lines.size()
+        );
+    }
+
+    if (vec != nullptr)
+    {
+        //*vec = lines.back().position;
+    }
 }
 
 XMVECTOR Overlay::RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &fontPos, DirectX::XMVECTORF32 tColor, DirectX::XMVECTORF32 bgColor, int v, float fontsize)

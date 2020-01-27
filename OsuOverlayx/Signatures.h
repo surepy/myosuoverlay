@@ -46,6 +46,56 @@ public:
     }
 
     // got from external sources :)
+
+    /*  frame delay (fps)
+    #=zq_nW7Nx1FUE8jqy1BA==::#=zDtFubb0=+F7 - D9E8                  - fld1
+    #=zq_nW7Nx1FUE8jqy1BA==::#=zDtFubb0=+F9 - DEE1                  - fsubrp st(1),st(0)
+    #=zq_nW7Nx1FUE8jqy1BA==::#=zDtFubb0=+FB - DC 0D 08605303        - fmul qword ptr [03536008] { [33.01] } <<
+    #=zq_nW7Nx1FUE8jqy1BA==::#=zDtFubb0=+101- DEC1                  - faddp
+    #=zq_nW7Nx1FUE8jqy1BA==::#=zDtFubb0=+103- DD 5E 0C              - fstp qword ptr [esi+0C]
+
+    \xdd\x45\x00\xd9\xe8\xde\xe1\xdc\x0d xx?xxxxxx
+    dd 45 ?
+    d9 e8
+    de e1
+    dc 0d
+
+    */
+    static constexpr unsigned char FRAME_DELAY[] = { 0xdd, 0x45, 0x00, 0xd9, 0xe8, 0xde, 0xe1, 0xdc, 0x0d };
+    static constexpr char *FRAME_DELAY_MASK = PCHAR("xx?xxxxxx");
+    static constexpr int FRAME_DELAY_OFFSET = 8 + 1;
+
+    /*
+        These sigs are from:
+        https://github.com/Piotrekol/ProcessMemoryDataFinder/blob/3a48045f9686075d67c9533a06f34d98a285afaf/OsuMemoryDataProvider/OsuMemoryReader.cs#L34
+    */
+    static constexpr unsigned char OSU_BASE[] = { 0xF8, 0x01, 0x74, 0x04, 0x83 };
+    static constexpr char *OSU_BASE_MASK = PCHAR("xxxxx");
+    static constexpr int OSU_BASE_OFFSET = 0;
+
+    static constexpr int GAMEMODE_OFFSET = -51;
+    static constexpr int RETRYS_PTR_OFFSET[] = { 8 };
+
+    static constexpr unsigned char STATUS[] = { 0x48, 0x83, 0xF8, 0x04, 0x73, 0x1E };
+    static constexpr char *STATUS_MASK = PCHAR("xxxxxx");
+    static constexpr int STATUS_OFFSET = 0;
+
+    static constexpr unsigned char TIME[] = { 0x5E, 0x5F, 0x5D, 0xC3, 0xA1, 0x00, 0x00, 0x00, 0x00, 0x89, 0x00, 0x04 };
+    static constexpr char *TIME_MASK = PCHAR("xxxxx????x?x");
+    static constexpr int TIME_OFFSET = 5;
+
+    static constexpr int BEATMAP_DATA_OFFSET = -12;
+
+    /*
+    \x80\x3d\x00\x00\x00\x00\x00\x75\x00\x8b\x7e xx?????x?xx
+
+    80 3d ? ? ? ? ? 75 ? 8b 7e
+    */
+
+    static constexpr unsigned char INPUT_COUNTER[] = { 0xFF, 0x46, 0x14, 0x80, 0x3d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x75, 0x00, 0x8b, 0x7e };
+    static constexpr char *INPUT_COUNTER_MASK = PCHAR("xxxxx?????x?xx");
+    static constexpr int INPUT_COUNTER_OFFSET = 4 + 1;
+
     /*  time
     08E3DF26 - DB 5D E8  - fistp dword ptr [ebp-18]
     08E3DF29 - 8B 45 E8  - mov eax,[ebp-18]
@@ -88,29 +138,40 @@ public:
     */
 
     //static constexpr unsigned char TIME[] = { 0xDB, 0x5D, 0xE8, 0x8B, 0x45, 0xE8, 0xA3 };
-    static constexpr unsigned char TIME[] = { 0xDB, 0x5D, 0xEC, 0x8B, 0x45, 0xEC, 0xA3 };
-    static constexpr char *TIME_MASK = PCHAR("xxxxxxx");
-    static constexpr int TIME_OFFSET = 6 + 1; // + 1 goes to address that points to the currentAudioTime value
+    static constexpr unsigned char TIME_BACKUP[] = { 0xDB, 0x5D, 0xEC, 0x8B, 0x45, 0xEC, 0xA3 };
+    static constexpr char *TIME_BACKUP_MASK = PCHAR("xxxxxxx");
+    static constexpr int TIME_BACKUP_OFFSET = 6 + 1; // + 1 goes to address that points to the currentAudioTime value
 
-    /*  frame delay (fps)
-    #=zq_nW7Nx1FUE8jqy1BA==::#=zDtFubb0=+F7 - D9E8                  - fld1
-    #=zq_nW7Nx1FUE8jqy1BA==::#=zDtFubb0=+F9 - DEE1                  - fsubrp st(1),st(0)
-    #=zq_nW7Nx1FUE8jqy1BA==::#=zDtFubb0=+FB - DC 0D 08605303        - fmul qword ptr [03536008] { [33.01] } <<
-    #=zq_nW7Nx1FUE8jqy1BA==::#=zDtFubb0=+101- DEC1                  - faddp
-    #=zq_nW7Nx1FUE8jqy1BA==::#=zDtFubb0=+103- DD 5E 0C              - fstp qword ptr [esi+0C]
+    /*[Backup] Mods
 
-    \xdd\x45\x00\xd9\xe8\xde\xe1\xdc\x0d xx?xxxxxx
-    dd 45 ?
-    d9 e8
-    de e1
-    dc 0d
+    see Mods struct
+
+    0C61DD9B - 8B 45 B8  - mov eax,[ebp-48]
+    0C61DD9E - 8B 48 14  - mov ecx,[eax+14]
+    0C61DDA1 - 09 0D 68629301  - or [01936268],ecx <<
+    0C61DDA7 - E8 9494FDFF - call #=z7S$_NECUeKvDcG$Jt6s7VjIpwiJVqlw20n0y1h8=::#=z9NWjQ9pbrv8Pn7$A$A==
+    0C61DDAC - 8B 45 BC  - mov eax,[ebp-44]
+
+    EAX=1B2432F8
+    EBX=00000000
+    ECX=00000001
+    EDX=00000000
+    ESI=0153EDAC
+    EDI=0153EDBC
+    ESP=0153ED94
+    EBP=0153EDDC
+    EIP=0C61DDA7
+
+    \xff\xe0\x8b\x45\x00\x8b\x48\x00\x09\x0d xxxx?xx?xx
 
     */
-    static constexpr unsigned char FRAME_DELAY[] = { 0xdd, 0x45, 0x00, 0xd9, 0xe8, 0xde, 0xe1, 0xdc, 0x0d };
-    static constexpr char *FRAME_DELAY_MASK = PCHAR("xx?xxxxxx");
-    static constexpr int FRAME_DELAY_OFFSET = 8 + 1;
 
-    /*Game mode global (0 = osu!, 1 = osu!taiko, 2 = osu!catch, 3 = osu!mania)
+    static constexpr unsigned char MODS_BACKUP[] = { 0xFF, 0xE0, 0x8B, 0x45, 0x00, 0x8B, 0x48, 0x00, 0x09, 0x0D };
+    static constexpr char *MODS_BACKUP_MASK = PCHAR("xxxx?xx?xx");
+    static constexpr int MODS_BACKUP_OFFSET = 9 + 1;
+
+    /* [BACKUP]
+    Game mode global (0 = osu!, 1 = osu!taiko, 2 = osu!catch, 3 = osu!mania)
 
     0A2DFEB8 - 18 81 450E0000        - sbb [ecx+00000E45],al
     0A2DFEBE - 00 00                 - add [eax],al
@@ -141,78 +202,4 @@ public:
     static constexpr unsigned char GAMEMODE_GLOBAL[] = { 0xEC, 0x57, 0x56, 0x53, 0x3B, 0x0D };
     static constexpr char *GAMEMODE_GLOBAL_MASK = PCHAR("xxxxxx");
     static constexpr int GAMEMODE_GLOBAL_OFFSET = 5 + 1;
-
-    /*Mods
-
-    see Mods struct
-
-    0C61DD9B - 8B 45 B8  - mov eax,[ebp-48]
-    0C61DD9E - 8B 48 14  - mov ecx,[eax+14]
-    0C61DDA1 - 09 0D 68629301  - or [01936268],ecx <<
-    0C61DDA7 - E8 9494FDFF - call #=z7S$_NECUeKvDcG$Jt6s7VjIpwiJVqlw20n0y1h8=::#=z9NWjQ9pbrv8Pn7$A$A==
-    0C61DDAC - 8B 45 BC  - mov eax,[ebp-44]
-
-    EAX=1B2432F8
-    EBX=00000000
-    ECX=00000001
-    EDX=00000000
-    ESI=0153EDAC
-    EDI=0153EDBC
-    ESP=0153ED94
-    EBP=0153EDDC
-    EIP=0C61DDA7
-
-    \xff\xe0\x8b\x45\x00\x8b\x48\x00\x09\x0d xxxx?xx?xx
-
-    */
-
-    static constexpr unsigned char MODS[] = { 0xFF, 0xE0, 0x8B, 0x45, 0x00, 0x8B, 0x48, 0x00, 0x09, 0x0D };
-    static constexpr char *MODS_MASK = PCHAR("xxxx?xx?xx");
-    static constexpr int MODS_OFFSET = 9 + 1;
-
-    /*
-    \x80\x3d\x00\x00\x00\x00\x00\x75\x00\x8b\x7e xx?????x?xx
-
-    80 3d ? ? ? ? ? 75 ? 8b 7e
-    */
-
-    static constexpr unsigned char INPUT_COUNTER[] = { 0xFF, 0x46, 0x14, 0x80, 0x3d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x75, 0x00, 0x8b, 0x7e };
-    static constexpr char *INPUT_COUNTER_MASK = PCHAR("xxxxx?????x?xx");
-    static constexpr int INPUT_COUNTER_OFFSET = 4 + 1;
-
-    /* x300 (std)
-    */
-
-    /*  score
-
-    EAX=00000001
-    EBX=25814338
-    ECX=24C15C98
-    EDX=24C10F80
-    ESI=00000000
-    EDI=24C11980
-    EBP=008FE870
-    ESP=008FE6C0
-    EIP=0B09B013
-
-    */
-
-    /* map name (i think)
-    779C7F8B - 83 E2 03 - and edx,03
-    779C7F8E - 83 F9 08 - cmp ecx,08
-    779C7F91 - 72 29 - jb ntdll.memmove+5C <<
-    779C7F93 - F3 A5 - repe movsd
-    779C7F95 - FF 24 95 AC809C77  - jmp dword ptr [edx*4+ntdll.memmove+14C]
-
-    EAX=064CEA06
-    EBX=020800BE
-    ECX=0000001A
-    EDX=00000002
-    ESI=064CE99C
-    EDI=0C18E824
-    ESP=064CE8E4
-    EBP=064CE8EC
-    EIP=779C7F93
-
-    */
 };

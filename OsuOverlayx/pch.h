@@ -90,7 +90,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <wincodec.h>
-
 #include "OsuOverlay.h"
 #include "OsuGame.h"
 #include "Utilities.h"
