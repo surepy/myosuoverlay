@@ -107,12 +107,12 @@ public:
 
     // the map itself
 public:
-    int BeatMapID;
-    int BeatmapSetID;
-    std::wstring Title;
+    int BeatMapID = 0;
+    int BeatmapSetID = 0;
+/*    std::wstring Title;
     std::wstring Artist;
     std::wstring Creator;
-    std::wstring Version;
+    std::wstring Version;*/
     int Mode;
 
     bool loaded;

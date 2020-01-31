@@ -269,22 +269,38 @@ bool beatmap::Parse(std::wstring filename) {
 
 void beatmap::Unload()
 {
-    this->timingpoints.clear();
+    this->BeatMapID = 0;
+    this->BeatmapSetID = 0;
+    /*
+    this->Title = nullptr;
+    this->Artist = nullptr;
+    this->Creator = nullptr;
+    this->Version = nullptr;*/
+    this->Mode = 0;
+
+    this->loaded = false;
+
+    this->CircleSize = 0;
+    this->SliderMultiplier = 0;
+
     this->hitobjects.clear();
+    this->timingpoints.clear();
+
     for (std::vector<hitobject> &row : this->hitobjects_sorted)
     {
         row.clear();
     }
-
+    
+    this->currentObjectIndex = 0;
     for (uint32_t &i : currentObjectIndex_sorted)
     {
         i = 0;
     }
-
-    this->loaded = false;
-    this->currentTimeIndex = 0;
-    this->currentObjectIndex = 0;
-    this->newComboIndex = 0;
     this->currentUninheritTimeIndex = 0;
+    this->currentTimeIndex = 0;
+    this->newComboIndex = 0;
     this->currentBpm = 0;
+    this->currentSpeed = 0;
+    this->kiai = false;
+
 }

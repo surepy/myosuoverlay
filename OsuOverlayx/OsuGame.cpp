@@ -13,7 +13,7 @@ void osuGame::UnloadGame()
 
 void osuGame::LoadGame()
 {
-    if (!hOsu || *bOsuLoading)
+    if (!hOsu)
         return;
 
     DWORD addr;
@@ -80,6 +80,8 @@ void osuGame::LoadGame()
 
     *bOsuLoaded = true;
     *bOsuLoading = false;
+
+    OutputDebugStringW(L"LoadGame: Exit\n");
 }
 
 void osuGame::readMemory()
@@ -212,42 +214,70 @@ void osuGame::readMemory()
 
         DWORD ptr, length;
 
-        ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 124), &ptr, sizeof DWORD, nullptr);
-        MemoryMapString = Utilities::ReadWStringFromMemory(hOsu, ptr);
+        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 124), &ptr, sizeof DWORD, nullptr))
+        {
+            MemoryMapString = Utilities::ReadWStringFromMemory(hOsu, ptr);
+        }
+        else
+        {
+            OutputDebugStringW(L"MemoryMapString Read Fail!\n");
+        }
 
-        ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 140), &ptr, sizeof DWORD, nullptr);
-        MemoryBeatMapFileName = Utilities::ReadWStringFromMemory(hOsu, ptr);
+        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 140), &ptr, sizeof DWORD, nullptr))
+        {
+            MemoryBeatMapFileName = Utilities::ReadWStringFromMemory(hOsu, ptr);
+        }
+        else
+        {
+            OutputDebugStringW(L"MemoryBeatMapFileName Read Fail!\n");
+        }
 
-        ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 116), &ptr, sizeof DWORD, nullptr);
-        MemoryBeatMapFolderName = Utilities::ReadWStringFromMemory(hOsu, ptr);
+        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 116), &ptr, sizeof DWORD, nullptr))
+        {
+            MemoryBeatMapFolderName = Utilities::ReadWStringFromMemory(hOsu, ptr);
+        }
+        else
+        {
+            OutputDebugStringW(L"MemoryBeatMapFolderName Read Fail!\n");
+        }
 
-        ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 108), &ptr, sizeof DWORD, nullptr);
-        MemoryBeatMapMD5 = Utilities::ReadWStringFromMemory(hOsu, ptr);
+        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 108), &ptr, sizeof DWORD, nullptr))
+        {
+            MemoryBeatMapMD5 = Utilities::ReadWStringFromMemory(hOsu, ptr);
+        }
+        else
+        {
+            OutputDebugStringW(L"MemoryBeatMapMD5 Read Fail!\n");
+        }
     }
 
     DWORD pPlayData = NULL;
     if (ppPlayData != NULL)
     {
-        ReadProcessMemory(hOsu, LPCVOID(ppPlayData), &pPlayData, sizeof std::int32_t, nullptr);
+        ReadProcessMemory(hOsu, LPCVOID(ppPlayData), &pPlayData, sizeof DWORD, nullptr);
         bOsuIngame = (pPlayData != NULL);
     }
 }
 
 void osuGame::CheckMap()
 {
-    if (loadedMap.BeatmapSetID != MemoryBeatMapSetID)
+    if (!*bOsuLoaded)
+        return;
+
+    if (loadedMap.BeatMapID != MemoryBeatMapID)
     {
         OutputDebugStringW(L"Loading mapset: ");
-        OutputDebugStringW(std::to_wstring(MemoryBeatMapSetID).c_str());
+        OutputDebugStringW(std::to_wstring(MemoryBeatMapID).c_str());
+        OutputDebugStringW(L" ");
         OutputDebugStringW(MemoryBeatMapFileName.c_str());
         OutputDebugStringW(L"\n");
-        loadedMap.loaded = false;
         loadedMap.Unload();
+        //loadedMap.BeatMapID = MemoryBeatMapID;
         try
         {
             if (!loadedMap.Parse(GetFolderActual()))
             {
-                loadedMap.loaded = false;
+                loadedMap.Unload();
                 OutputDebugStringW(L"Load failed!\n");
                 return;
             }
@@ -257,7 +287,13 @@ void osuGame::CheckMap()
         catch (std::out_of_range)
         {
             OutputDebugStringW(L"Load failed!\n");
-            loadedMap.loaded = false;
+            loadedMap.Unload();
+        }
+        catch (std::exception &e)
+        {
+            OutputDebugStringW(L"Load failed! : ALL EXCEPTION IDK WTF THIS IS \n");
+            OutputDebugStringA(e.what());
+            loadedMap.Unload();
         }
     }
 }

@@ -46,7 +46,7 @@ public:
         if (length > 131072)
             return std::wstring(L" ");
 
-        wchar_t* buf = new wchar_t[(size_t)length];
+        wchar_t* buf = new wchar_t[(size_t)(length * _WCHAR_T_SIZE)];
         ReadProcessMemory(hnd, LPCVOID(ptr + 8), buf, (size_t)(length * _WCHAR_T_SIZE), nullptr);
         str = std::wstring(buf, length);
         delete[] buf;

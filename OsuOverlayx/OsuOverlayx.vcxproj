@@ -161,6 +161,7 @@
     <ClCompile Include="directXTK\Src\ToneMapPostProcess.cpp" />
     <ClCompile Include="directXTK\Src\VertexTypes.cpp" />
     <ClCompile Include="directXTK\Src\WICTextureLoader.cpp" />
+    <ClCompile Include="OsuGame.cpp" />
     <ClCompile Include="OsuOverlay.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>

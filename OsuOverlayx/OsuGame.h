@@ -141,9 +141,9 @@ public:
 
                 if (hOsu != NULL)
                 {
+                    *bOsuLoading = true;
                     std::thread a = LoadGameThread();
                     a.detach();
-                    *bOsuLoading = true;
                 }
             }
             else
@@ -183,15 +183,15 @@ public:
      *  Raw osu pointers (preferred)
      */
 private:
-    DWORD pInput; // ?
-    DWORD pOsuFramedelay;
-    DWORD pBase;
-    DWORD pOsuMapTime;
-    DWORD pOsuGameMode;
-    DWORD pMods;
-    DWORD ppBeatmapData;
-    DWORD pRetries;
-    DWORD ppPlayData;
+    DWORD pInput = NULL; // ?
+    DWORD pOsuFramedelay = NULL;
+    DWORD pBase = NULL;
+    DWORD pOsuMapTime = NULL;
+    DWORD pOsuGameMode = NULL;
+    DWORD pMods = NULL;
+    DWORD ppBeatmapData = NULL;
+    DWORD pRetries = NULL;
+    DWORD ppPlayData = NULL;
 
     DWORD pTemp;
     DWORD pTemp2;
@@ -202,7 +202,7 @@ public:
     std::chrono::milliseconds currentTime;
     std::chrono::milliseconds previousDistTime;
 
-    int osuMapTime;
+    int osuMapTime = 0;
     PlayMode gameMode = PlayMode::STANDARD;
     bool bOsuIngame = false;
 
@@ -223,7 +223,7 @@ public:
     std::vector<std::chrono::milliseconds> clicks;
     DirectX::SimpleMath::Vector2 cursorLocation;
 
-    std::int32_t mods;
+    std::int32_t mods = 0;
 
     bool hasMod(const Mods &mod)
     {

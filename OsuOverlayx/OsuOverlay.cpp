@@ -265,6 +265,13 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
             Colors::White, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 0.4f);
         return;
     }
+    else if (!gameStat.loadedMap.loaded)
+    {
+        m_font->DrawString(m_spriteBatch.get(), L"Map Loading...",
+            DirectX::SimpleMath::Vector2(0.f, 90.f),
+            Colors::White, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 0.4f);
+        return;
+    }
 
     DirectX::SimpleMath::Vector2 origin = DirectX::SimpleMath::Vector2(0.f, 0.f);
 
@@ -747,7 +754,7 @@ void Overlay::RenderAssistant(osuGame &gameStat)
      *  cursorStartPoints.y = 12 + 72
      */
 
-    if (gameStat.loadedMap.hitobjects.size() == 0 ||
+    if (!gameStat.loadedMap.loaded ||
         (!(gameStat.loadedMap.currentObjectIndex < gameStat.loadedMap.hitobjects.size() - 1) && gameStat.loadedMap.hitobjects.back().IsCircle()
             && (gameStat.loadedMap.hitobjects.back().end_time < gameStat.osuMapTime)))
         return;
@@ -1592,8 +1599,4 @@ void Overlay::OnDeviceLost()
     CreateDevice();
 
     CreateResources();
-}
-
-void Tick_StreamCompanion_Abandoned(osuGame &gameStat)
-{
 }
