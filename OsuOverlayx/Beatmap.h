@@ -101,7 +101,7 @@ private:
     bool ParseGeneral(std::wstring difficulty_line);
     bool ParseMetaData(std::wstring difficulty_line);
 public:
-    bool Parse(std::wstring filename);
+    bool Parse(const std::wstring filename, const std::wstring md5hash);
 
     void Unload();
 
@@ -109,10 +109,11 @@ public:
 public:
     int BeatMapID = 0;
     int BeatmapSetID = 0;
-/*    std::wstring Title;
-    std::wstring Artist;
-    std::wstring Creator;
-    std::wstring Version;*/
+    std::wstring MD5_Hash;
+    /*    std::wstring Title;
+        std::wstring Artist;
+        std::wstring Creator;
+        std::wstring Version;*/
     int Mode;
 
     bool loaded;

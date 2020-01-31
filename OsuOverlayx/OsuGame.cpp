@@ -264,10 +264,10 @@ void osuGame::CheckMap()
     if (!*bOsuLoaded)
         return;
 
-    if (loadedMap.BeatMapID != MemoryBeatMapID)
+    if (loadedMap.MD5_Hash != MemoryBeatMapMD5)
     {
         OutputDebugStringW(L"Loading mapset: ");
-        OutputDebugStringW(std::to_wstring(MemoryBeatMapID).c_str());
+        OutputDebugStringW(MemoryBeatMapMD5.c_str());
         OutputDebugStringW(L" ");
         OutputDebugStringW(MemoryBeatMapFileName.c_str());
         OutputDebugStringW(L"\n");
@@ -275,7 +275,7 @@ void osuGame::CheckMap()
         //loadedMap.BeatMapID = MemoryBeatMapID;
         try
         {
-            if (!loadedMap.Parse(GetFolderActual()))
+            if (!loadedMap.Parse(GetFolderActual(), MemoryBeatMapMD5))
             {
                 loadedMap.Unload();
                 OutputDebugStringW(L"Load failed!\n");

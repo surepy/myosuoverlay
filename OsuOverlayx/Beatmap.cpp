@@ -207,7 +207,7 @@ inline bool beatmap::ParseMetaData(std::wstring difficulty_line) {
     return true;
 }
 
-bool beatmap::Parse(std::wstring filename) {
+bool beatmap::Parse(const std::wstring filename, const std::wstring md5hash) {
     std::wifstream beatmap_file(filename, std::ifstream::in);
 
     if (!beatmap_file.good()) {
@@ -215,6 +215,7 @@ bool beatmap::Parse(std::wstring filename) {
     }
 
     std::wstring current_line;
+    MD5_Hash = md5hash;
 
     while (std::getline(beatmap_file, current_line)) {
         static std::wstring current_section;
@@ -290,7 +291,7 @@ void beatmap::Unload()
     {
         row.clear();
     }
-    
+
     this->currentObjectIndex = 0;
     for (uint32_t &i : currentObjectIndex_sorted)
     {
@@ -302,5 +303,4 @@ void beatmap::Unload()
     this->currentBpm = 0;
     this->currentSpeed = 0;
     this->kiai = false;
-
 }
