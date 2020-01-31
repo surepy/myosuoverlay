@@ -191,18 +191,18 @@ inline bool beatmap::ParseMetaData(std::wstring difficulty_line) {
         else if (!_wcsicmp(values[0].c_str(), L"BeatmapSetID")) {
             this->BeatmapSetID = std::stoi(values[1]);
         }
-        else if (!_wcsicmp(values[0].c_str(), L"Artist")) {
+        /*else if (!_wcsicmp(values[0].c_str(), L"Artist")) {
             this->Artist = values[1];
         }
         else if (!_wcsicmp(values[0].c_str(), L"Title")) {
-            this->Title = values[1];
+            //this->Title = values[1];
         }
         else if (!_wcsicmp(values[0].c_str(), L"Creator")) {
             this->Creator = values[1];
         }
         else if (!_wcsicmp(values[0].c_str(), L"Version")) {
             this->Version = values[1];
-        }
+        }*/
     }
     return true;
 }
@@ -281,11 +281,10 @@ void beatmap::Unload()
         i = 0;
     }
 
+    this->loaded = false;
     this->currentTimeIndex = 0;
     this->currentObjectIndex = 0;
-    //     this->currentObjectMiscIndex = 0;
-    this->newComboIndex = 0;
-    this->loadedMap = L"";
     this->newComboIndex = 0;
     this->currentUninheritTimeIndex = 0;
+    this->currentBpm = 0;
 }

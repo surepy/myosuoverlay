@@ -31,6 +31,29 @@ public:
         return process_id;
     };
 
+    static std::wstring ReadWStringFromMemory(HANDLE hnd, DWORD ptr)
+    {
+        DWORD length;
+        std::wstring str;
+
+        if (ptr == NULL)
+            return L" ";
+
+        ReadProcessMemory(hnd, LPCVOID(ptr + 4), &length, sizeof DWORD, nullptr);
+        // https://github.com/Piotrekol/ProcessMemoryDataFinder/blob/3242645aebcf76b33337f516b363ac67980fb873/ProcessMemoryDataFinder/API/Sig.cs#L241
+        // in here, it causes std::bad_alloc.
+
+        if (length > 131072)
+            return std::wstring(L" ");
+
+        wchar_t* buf = new wchar_t[(size_t)length];
+        ReadProcessMemory(hnd, LPCVOID(ptr + 8), buf, (size_t)(length * _WCHAR_T_SIZE), nullptr);
+        str = std::wstring(buf, length);
+        delete[] buf;
+
+        return str;
+    }
+
     struct MappingFile
     {
     public:

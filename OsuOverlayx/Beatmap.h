@@ -113,8 +113,9 @@ public:
     std::wstring Artist;
     std::wstring Creator;
     std::wstring Version;
-
     int Mode;
+
+    bool loaded;
 
     float CircleSize; //  note: this is amount of rows in mania.
     float SliderMultiplier;
@@ -213,7 +214,6 @@ public:
         }
     };
 
-    std::wstring loadedMap = L"";
     std::uint32_t currentObjectIndex = 0;
     std::uint32_t currentObjectIndex_sorted[10]; // mania only
     std::uint32_t currentUninheritTimeIndex = 0;

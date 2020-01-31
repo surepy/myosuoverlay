@@ -21,6 +21,7 @@ public:
 
     // Basic game loop
     void Tick(osuGame &gameStat);
+    void Tick_StreamCompanion_Abandoned(osuGame &gameStat);
 
     // Messages
     void OnActivated();
@@ -35,8 +36,6 @@ public:
     void SetName(std::wstring name);
 
 private:
-
-    bool loadMap(osuGame &gameStat);
 
     void Update(DX::StepTimer const& timer);
     void Render(osuGame &gameStat);
@@ -107,6 +106,7 @@ private:
 
     void DrawSliderPartBiezer(slidercurve& init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion = 0.f, DirectX::SimpleMath::Vector2 *vec = nullptr);
 
+    // inscribed angle
     void DrawSliderPerfectCircle();
 
     void DrawCircleIWantToKillMyself(int32_t radius = 200)

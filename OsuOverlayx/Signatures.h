@@ -84,7 +84,13 @@ public:
     static constexpr char *TIME_MASK = PCHAR("xxxxx????x?x");
     static constexpr int TIME_OFFSET = 5;
 
-    static constexpr int BEATMAP_DATA_OFFSET = -12;
+    static constexpr int BEATMAP_DATA_OFFSET = -12; // NOTE: double ponter
+
+    // NOTE: double pointer
+    static constexpr unsigned char PLAYDATA[] = { 0x85, 0xC9, 0x74, 0x1F, 0x8D, 0x55, 0xF0, 0x8B, 0x01 };
+    static constexpr char *PLAYDATA_MASK = PCHAR("xxxxxxxxx");
+    static constexpr int PLAYDATA_OFFSET = -4;
+    //85 C9 74 1F 8D 55 F0 8B 01
 
     /*
     \x80\x3d\x00\x00\x00\x00\x00\x75\x00\x8b\x7e xx?????x?xx
@@ -164,11 +170,12 @@ public:
 
     \xff\xe0\x8b\x45\x00\x8b\x48\x00\x09\x0d xxxx?xx?xx
 
+    \xff\xe0\x8b\x45\x00\x8b\x48\x00\x09\x0d xxxx?xx?xx
     */
 
-    static constexpr unsigned char MODS_BACKUP[] = { 0xFF, 0xE0, 0x8B, 0x45, 0x00, 0x8B, 0x48, 0x00, 0x09, 0x0D };
-    static constexpr char *MODS_BACKUP_MASK = PCHAR("xxxx?xx?xx");
-    static constexpr int MODS_BACKUP_OFFSET = 9 + 1;
+    static constexpr unsigned char MODS[] = { 0xFF, 0xE0, 0x8B, 0x45, 0x00, 0x8B, 0x48, 0x00, 0x09, 0x0D };
+    static constexpr char *MODS_MASK = PCHAR("xxxx?xx?xx");
+    static constexpr int MODS_OFFSET = 9 + 1;
 
     /* [BACKUP]
     Game mode global (0 = osu!, 1 = osu!taiko, 2 = osu!catch, 3 = osu!mania)

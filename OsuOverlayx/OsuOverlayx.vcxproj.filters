@@ -141,6 +141,9 @@
     <ClCompile Include="directXTK\Src\WICTextureLoader.cpp">
       <Filter>DirectXTK\Source FIles</Filter>
     </ClCompile>
+    <ClCompile Include="OsuGame.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="OsuOverlay.h">

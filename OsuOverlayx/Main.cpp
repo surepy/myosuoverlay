@@ -45,8 +45,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     g_game->SetName(arg == L"" ? L"surepyw" : arg);
 
-    gameStat.CheckGame();
-
     MSG msg = {};
     while (WM_QUIT != msg.message)
     {
@@ -133,10 +131,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     g_game->Initialize(hWnd, wr.right - wr.left, wr.bottom - wr.top);
 
+    /*
     if (FindWindow(NULL, L"osu!StreamCompanion by Piotrekol") == 0)
     {
         MessageBox(NULL, L"StreamCompanion is not found! things will not work as intended!", L"StreamCompanion not found!", MB_ICONEXCLAMATION);
     }
+    */
 
     //  init shared memory
 
