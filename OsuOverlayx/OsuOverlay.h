@@ -49,15 +49,15 @@ private:
     /**
         Gets Actual Screen coords from osupixel
     */
-    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t &x, int32_t &y)
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x, int32_t y)
     {
         return DirectX::SimpleMath::Vector2(
-            257.f + x * 1.5f,
-            84.f + y * 1.5f
+            257.f + (float)x * 1.5f,
+            84.f + (float)y * 1.5f
         );
     }
 
-    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(DirectX::SimpleMath::Vector2& vec)
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(DirectX::SimpleMath::Vector2 vec)
     {
         return DirectX::SimpleMath::Vector2(
             257.f + vec.x * 1.5f,
@@ -65,7 +65,7 @@ private:
         );
     }
 
-    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(double_t &x, double_t &y)
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(double_t x, double_t y)
     {
         return DirectX::SimpleMath::Vector2(
             257.f + (float)x * 1.5f,
@@ -102,12 +102,11 @@ private:
 
     void DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 color);
 
-    inline void DrawSliderLinear(slidercurve& init_point, slidercurve &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion = 0.f, DirectX::SimpleMath::Vector2 *vec = nullptr);
+    inline void DrawSliderLinear(slidercurve init_point, slidercurve &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion = 0.f, DirectX::SimpleMath::Vector2 *vec = nullptr);
 
-    void DrawSliderPartBiezer(slidercurve& init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion = 0.f, DirectX::SimpleMath::Vector2 *vec = nullptr);
+    void DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion = 0.f, DirectX::SimpleMath::Vector2 *vec = nullptr);
 
-    // inscribed angle
-    void DrawSliderPerfectCircle();
+    void DrawSliderPerfectCircle(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion = 0.f, DirectX::SimpleMath::Vector2 *vec = nullptr);
 
     void DrawCircleIWantToKillMyself(int32_t radius = 200)
     {
@@ -118,7 +117,7 @@ private:
                 // iterate y up to 2*pi, i.e., 360 degree
                 // with small increment in angle as
                 // glVertex2i just draws a point on specified co-ordinate
-        for (i = 0; i < (2 * (atan(1) * 4)); i += 0.001)
+        for (i = 0; i < (2 * (atan(1) * 4)); i += 0.01)
         {
             // let 200 is radius of circle and as,
             // circle is defined as x=r*cos(i) and y=r*sin(i)

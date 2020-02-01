@@ -209,6 +209,7 @@
     <ClInclude Include="OsuGame.h" />
     <ClInclude Include="OsuOverlay.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="Signatures.h" />
     <ClInclude Include="StepTimer.h" />
     <ClInclude Include="Utilities.h" />
@@ -216,6 +217,9 @@
   <ItemGroup>
     <None Include="directXTK\Inc\SimpleMath.inl" />
     <None Include="directXTK\Src\TeapotData.inc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="OsuOverlayx.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

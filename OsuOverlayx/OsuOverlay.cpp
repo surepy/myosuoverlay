@@ -505,6 +505,14 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
                 m_fontPos, Colors::White, 0.f, origin, 0.4f);
 
             m_fontPos.y += 15;
+
+            if (gameStat.hasMod(Mods::HardRock))
+            {
+                m_font->DrawString(m_spriteBatch.get(), L"Incorrect Information notice: Hardrock not Supported!",
+                    m_fontPos, Colors::White, 0.f, origin, 0.4f);
+
+                m_fontPos.y += 15;
+            }
         }
 
         break;
@@ -763,6 +771,10 @@ void Overlay::RenderAssistant(osuGame &gameStat)
     if (!gameStat.bOsuIngame)
         return;
 
+    // not yet
+    if (gameStat.hasMod(Mods::HardRock))
+        return;
+
     std::wstring textString;
 
     switch (gameStat.gameMode)
@@ -772,7 +784,7 @@ void Overlay::RenderAssistant(osuGame &gameStat)
         hitobject *next_object = gameStat.loadedMap.getNextHitObject();
         hitobject *upcoming_object = gameStat.loadedMap.getUpcomingHitObject();
 
-        if (gameStat.hasMod(Mods::Hidden) || !gameStat.bOsuIngame) // is hidden or not in game
+        if (false) // has hidden; disabled for now rewrite later: gameStat.hasMod(Mods::Hidden)
         {
             std::uint32_t comboIndex = gameStat.loadedMap.newComboIndex;
             bool bContinue = true;
@@ -1104,7 +1116,9 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
     OutputDebugStringW(std::to_wstring(object.slidercurves.size()).c_str());
     OutputDebugStringW(L" type: ");
     OutputDebugStringW(object.slidertype.c_str());
-    OutputDebugStringW(L"\n");*/
+    OutputDebugStringW(L"\n");
+    */
+
     int32_t a = 1000, b = 1000;
     m_font->DrawString(m_spriteBatch.get(), (object.slidertype + L" " + std::to_wstring(time_left)).c_str(),
         GetScreenCoordFromOsuPixelStandard(&object),
@@ -1158,16 +1172,36 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
     }
     else if (object.slidertype == L"P")
     {
-        //PerfectCircle
-        DebugDrawSliderPoints(
-            object.x,
-            object.y,
-            object.slidercurves,
-            color
-        );
+        // PerfectCircle
+        DrawSliderPerfectCircle(init_curve, object.slidercurves, length_left, color, 0.0f, &end_point);
 
-        //temp
-        end_point = Utilities::SliderCurveToVector2(object.slidercurves.back());
+        // temp
+        //end_point = Utilities::SliderCurveToVector2(object.slidercurves.back());
+    }
+    // is this even correct? not that it matters..
+    else if (object.slidertype == L"C")
+    {
+        std::vector<DirectX::VertexPositionColor> lines;
+
+        for (double t = 0; t <= 1; t += 0.1)
+        {
+            lines.push_back(DirectX::VertexPositionColor(
+                GetScreenCoordFromOsuPixelStandard(
+                    DirectX::SimpleMath::Vector2::CatmullRom(
+                        DirectX::SimpleMath::Vector2(object.x, object.y),
+                        Utilities::SliderCurveToVector2(object.slidercurves.at(0)),
+                        Utilities::SliderCurveToVector2(object.slidercurves.at(1)),
+                        Utilities::SliderCurveToVector2(object.slidercurves.at(2)),
+                        t
+                    )
+                ), color
+            ));
+        }
+
+        m_batch->Draw(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP,
+            lines.data(),
+            lines.size()
+        );
     }
     else
     {
@@ -1182,10 +1216,97 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
     return;  // should be sliderend
 }
 
+inline void Overlay::DrawSliderPerfectCircle(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion, DirectX::SimpleMath::Vector2 *vec)
+{
+    // https://github.com/ppy/osu/blob/a8579c49f9327b0a4a8278a76167e081d14ea516/osu.Game/Rulesets/Objects/CircularArcApproximator.cs
+    // copy-paste modification
+    if (curves.size() != 2)
+    {
+        throw new std::invalid_argument("More or Less than 3 Points in DrawSliderPerfectCircle! what!?");
+    }
+
+    const long double pi = (atan(1) * 4);
+
+    DirectX::SimpleMath::Vector2 first = DirectX::SimpleMath::Vector2(init_point.x, init_point.y),  // first
+        second = Utilities::SliderCurveToVector2(curves.at(0)), // passthrough
+        third = Utilities::SliderCurveToVector2(curves.at(1));  // end
+
+    double aSq = DirectX::SimpleMath::Vector2::DistanceSquared(second, third);
+    double bSq = DirectX::SimpleMath::Vector2::DistanceSquared(first, third);
+    double cSq = DirectX::SimpleMath::Vector2::DistanceSquared(first, second);
+
+    // degenerate triangle i'mma ignore until things break
+
+    double s = aSq * (bSq + cSq - aSq);
+    double t = bSq * (aSq + cSq - bSq);
+    double u = cSq * (aSq + bSq - cSq);
+
+    float sum = s + t + u;
+
+    // again, see above.
+
+    DirectX::SimpleMath::Vector2 centre = (s * first + t * second + u * third) / sum;
+    DirectX::SimpleMath::Vector2 dA = first - centre;
+    DirectX::SimpleMath::Vector2 dC = third - centre;
+
+    float r = dA.Length();  // is this the correct func?
+
+    double thetaStart = std::atan2(dA.y, dA.x);
+    double thetaEnd = std::atan2(dC.y, dC.x);
+
+    while (thetaEnd < thetaStart)
+        thetaEnd += 2 * pi;
+
+    double dir = 1;
+    double thetaRange = thetaEnd - thetaStart;
+
+    // Decide in which direction to draw the circle, depending on which side of
+    // AC B lies.
+    DirectX::SimpleMath::Vector2 orthoAtoC = third - first;
+    orthoAtoC = DirectX::SimpleMath::Vector2(orthoAtoC.y, -orthoAtoC.x);
+    if (orthoAtoC.Dot(second - first) < 0)
+    {
+        dir = -dir;
+        thetaRange = 2 * pi - thetaRange;
+    }
+
+    const float tolerance = 0.1f;
+
+    // We select the amount of points for the approximation by requiring the discrete curvature
+    // to be smaller than the provided tolerance. The exact angle required to meet the tolerance
+    // is: 2 * Math.Acos(1 - TOLERANCE / r)
+    // The special case is required for extremely short sliders where the radius is smaller than
+    // the tolerance. This is a pathological rather than a realistic case.
+    int amountPoints = 2 * r <= tolerance ? 2 : std::max(2, (int)std::ceil(thetaRange / (2 * std::acos(1 - tolerance / r))));
+
+    std::vector<DirectX::VertexPositionColor> output;
+
+    for (int i = 0; i < amountPoints; ++i)
+    {
+        double fract = (double)i / (amountPoints - 1);
+        double theta = thetaStart + dir * fract * thetaRange;
+        DirectX::SimpleMath::Vector2 o = DirectX::SimpleMath::Vector2((float)std::cos(theta), (float)std::sin(theta)) * r;
+        output.push_back(DirectX::VertexPositionColor(
+            GetScreenCoordFromOsuPixelStandard(centre + o),
+            color
+        ));
+    }
+
+    if (output.size() > 0)
+    {
+        m_batch->Draw(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP,
+            output.data(),
+            output.size()
+        );
+    }
+
+    *vec = Utilities::SliderCurveToVector2(curves.back());
+}
+
 /**
 
 */
-inline void Overlay::DrawSliderLinear(slidercurve &init_point, slidercurve &curve, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion, DirectX::SimpleMath::Vector2 *vec)
+inline void Overlay::DrawSliderLinear(slidercurve init_point, slidercurve &curve, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion, DirectX::SimpleMath::Vector2 *vec)
 {
     DirectX::SimpleMath::Vector2 init_pt = Utilities::SliderCurveToVector2(init_point),
         curve_pt = Utilities::SliderCurveToVector2(curve);
@@ -1208,7 +1329,7 @@ inline void Overlay::DrawSliderLinear(slidercurve &init_point, slidercurve &curv
     dist_left -= DirectX::SimpleMath::Vector2::Distance(init_pt, curve_pt);
 }
 
-void Overlay::DrawSliderPartBiezer(slidercurve &init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion, DirectX::SimpleMath::Vector2 *vec)
+void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion, DirectX::SimpleMath::Vector2 *vec)
 {
     int size = curves.size();
     std::vector<int> x_p, y_p;

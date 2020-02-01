@@ -104,7 +104,6 @@ private:
     DWORD dwOsuPid = 0;
     HANDLE hOsu = nullptr;
     std::wstring SongFolderLocation = L"C:\\Users\\sleepy\\AppData\\Local\\osu!\\Songs\\";
-
     struct PlayData {
     };
 public:

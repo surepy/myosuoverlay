@@ -111,7 +111,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     HWND hWnd = CreateWindowW(szWindowClass,
         szTitle,
-        WS_BORDER | WS_MINIMIZEBOX | WS_SYSMENU,
+        WS_BORDER | WS_MINIMIZEBOX | WS_SYSMENU, // WS_OVERLAPPEDWINDOW // WS_BORDER | WS_MINIMIZEBOX | WS_SYSMENU
         CW_USEDEFAULT, 0,
         wr.right - wr.left, wr.bottom - wr.top,
         nullptr, nullptr,

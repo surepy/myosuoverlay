@@ -266,6 +266,9 @@
     <ClInclude Include="Utilities.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="directXTK\Inc\SimpleMath.inl">
@@ -274,5 +277,10 @@
     <None Include="directXTK\Src\TeapotData.inc">
       <Filter>DirectXTK\Source FIles</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="OsuOverlayx.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>
