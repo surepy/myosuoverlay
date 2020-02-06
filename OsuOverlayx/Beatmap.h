@@ -33,6 +33,7 @@ struct hitobject {
     int32_t y;
     int32_t start_time;
     int32_t end_time;
+    // more like slides - repeat  + 1 but ok
     uint32_t repeat;
     uint32_t pixel_length;
 

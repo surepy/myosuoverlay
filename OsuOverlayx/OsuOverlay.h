@@ -21,7 +21,6 @@ public:
 
     // Basic game loop
     void Tick(osuGame &gameStat);
-    void Tick_StreamCompanion_Abandoned(osuGame &gameStat);
 
     // Messages
     void OnActivated();
@@ -102,11 +101,11 @@ private:
 
     void DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 color);
 
-    inline void DrawSliderLinear(slidercurve init_point, slidercurve &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion = 0.f, DirectX::SimpleMath::Vector2 *vec = nullptr);
+    inline void DrawSliderLinear(slidercurve init_point, slidercurve &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t completion = 0.f, bool reverse = false, DirectX::SimpleMath::Vector2 *vec = nullptr);
 
-    void DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion = 0.f, DirectX::SimpleMath::Vector2 *vec = nullptr);
+    void DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t completion = 0.f, bool reverse = false, DirectX::SimpleMath::Vector2 *vec = nullptr);
 
-    void DrawSliderPerfectCircle(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion = 0.f, DirectX::SimpleMath::Vector2 *vec = nullptr);
+    void DrawSliderPerfectCircle(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t completion = 0.f, bool reverse = false, DirectX::SimpleMath::Vector2 *vec = nullptr);
 
     void DrawCircleIWantToKillMyself(int32_t radius = 200)
     {

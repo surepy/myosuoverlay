@@ -267,7 +267,7 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
     }
     else if (!gameStat.loadedMap.loaded)
     {
-        m_font->DrawString(m_spriteBatch.get(), L"Map Loading...",
+        m_font->DrawString(m_spriteBatch.get(), L"Map Loading... (Most likely Map load fail..)",
             DirectX::SimpleMath::Vector2(0.f, 90.f),
             Colors::White, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 0.4f);
         return;
@@ -280,7 +280,9 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
         timingpoint *current_timingpoint = gameStat.loadedMap.getCurrentTimingPoint();
         if (current_timingpoint == nullptr)
             return;
-        std::wstring str = std::to_wstring(gameStat.GetActualBPM(current_timingpoint->getBPM())) + L"bpm" + (current_timingpoint->kiai ? L"☆ " : L" ") + L"(x" + Utilities::to_wstring_with_precision(current_timingpoint->velocity, 2) + L") id: " + std::to_wstring(gameStat.loadedMap.BeatMapID);
+        std::wstring str = std::to_wstring(gameStat.GetActualBPM(current_timingpoint->getBPM()))
+            + L"bpm" + (current_timingpoint->kiai ? L"☆ " : L" ") + L"(x" + Utilities::to_wstring_with_precision(current_timingpoint->velocity, 2)
+            + L") setid:" + std::to_wstring(gameStat.loadedMap.BeatmapSetID) + L" id:" + std::to_wstring(gameStat.loadedMap.BeatMapID);
 
         m_font->DrawString(m_spriteBatch.get(),
             str.c_str(),
@@ -324,7 +326,7 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
          */
 
         origin = DirectX::SimpleMath::Vector2(0.f, 0.f);
-        m_fontPos = DirectX::SimpleMath::Vector2(0.f, 30.f);
+        m_fontPos = DirectX::SimpleMath::Vector2(0.f, 28.f);
 
         if (current_object != nullptr && gameStat.osuMapTime < gameStat.loadedMap.hitobjects[gameStat.loadedMap.hitobjects.size() - 1].end_time)
             //(gameStat.currentMap.currentObjectIndex < gameStat.currentMap.hitobjects.size() && gameStat.osuMapTime < gameStat.currentMap.hitobjects[gameStat.currentMap.hitobjects.size() - 1].end_time)
@@ -574,6 +576,60 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
 
         if (gameStat.osuMapTime < gameStat.loadedMap.hitobjects[gameStat.loadedMap.hitobjects.size() - 1].end_time)
         {
+            timingpoint *current_timingpoint = gameStat.loadedMap.getCurrentTimingPoint(), *next_timingpoint = nullptr, *prev_timingpoint = nullptr;
+            for (int i = gameStat.loadedMap.currentTimeIndex + 1; i < gameStat.loadedMap.timingpoints.size(); i++)
+            {
+                if (*current_timingpoint != gameStat.loadedMap.timingpoints.at(i))
+                {
+                    next_timingpoint = &gameStat.loadedMap.timingpoints.at(i);
+                    break;
+                }
+            }
+
+            for (int i = gameStat.loadedMap.currentTimeIndex - 1; i >= 0; i--)
+            {
+                if (*current_timingpoint != gameStat.loadedMap.timingpoints.at(i))
+                {
+                    prev_timingpoint = &gameStat.loadedMap.timingpoints.at(i);
+                    break;
+                }
+            }
+
+            textString = L"bpm: ";
+
+            m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
+                m_fontPos, Colors::White, 0.f, origin, 0.4f);
+
+            m_fontPos.x += (XMVectorGetX(m_font->MeasureString(textString.c_str()))) * 0.4f;
+
+            if (prev_timingpoint != nullptr)
+            {
+                origin.y -= (XMVectorGetY(m_font->MeasureString(textString.c_str())) * 0.325f) / 2;
+                textString = L" " + std::to_wstring(gameStat.GetActualBPM(prev_timingpoint->getBPM())) + L"bpm" + (prev_timingpoint->kiai ? L"☆ " : L" ") + L"(x" + Utilities::to_wstring_with_precision(prev_timingpoint->velocity, 2) + L") ->";
+                m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
+                    m_fontPos, Colors::White, 0.f, origin, 0.325f);
+                m_fontPos.x += XMVectorGetX(m_font->MeasureString(textString.c_str())) * 0.325f;
+            }
+
+            origin.y = 0.f;
+            // gameStat.GetActualBPM(next_timingpoint->getBPM())  gameStat.currentMap.currentBpm
+            textString = L" " + std::to_wstring(gameStat.GetActualBPM(current_timingpoint->getBPM())) + L"bpm" + (current_timingpoint->kiai ? L"☆ " : L" ") + L"(x" + Utilities::to_wstring_with_precision(current_timingpoint->velocity, 2) + L") ";
+            m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
+                m_fontPos, Colors::Yellow, 0.f, origin, 0.4f);
+            m_fontPos.x += XMVectorGetX(m_font->MeasureString(textString.c_str())) * 0.4f;
+
+            // TODO auto bpm
+            if (next_timingpoint != nullptr)
+            {
+                origin.y -= (XMVectorGetY(m_font->MeasureString(textString.c_str())) * 0.325f) / 2;
+                textString = L" -> " + std::to_wstring(gameStat.GetActualBPM(next_timingpoint->getBPM())) + L"bpm" + (next_timingpoint->kiai ? L"☆ " : L" ") + L"(x" + Utilities::to_wstring_with_precision(next_timingpoint->velocity, 2) + L") -" + Utilities::to_wstring_with_precision(gameStat.GetSecondsFromOsuTime(next_timingpoint->offset - gameStat.osuMapTime), 2) + L"s";
+                m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
+                    m_fontPos, Colors::White, 0.f, origin, 0.325f);
+            }
+
+            m_fontPos.x = 570.f;
+            m_fontPos.y += 15;
+
             std::uint32_t nds = 0;
             std::uint32_t nds_f = 0;
             std::uint32_t nds_warning_c = gameStat.loadedMap.CircleSize * 6;
@@ -651,20 +707,20 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
 
             if (prev_timingpoint != nullptr)
             {
-                textString = L" " + std::to_wstring(prev_timingpoint->getBPM()) + L"bpm (x" + Utilities::to_wstring_with_precision(prev_timingpoint->velocity, 2) + L") ->";
+                textString = L" " + std::to_wstring(prev_timingpoint->getBPM()) + L"bpm" + (prev_timingpoint->kiai ? L"☆ " : L" ") + L"(x" + Utilities::to_wstring_with_precision(prev_timingpoint->velocity, 2) + L") ->";
                 m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
                     m_fontPos, Colors::White, 0.f, origin, 0.5f);
                 m_fontPos.x += XMVectorGetX(m_font->MeasureString(textString.c_str())) * 0.5f;
             }
 
-            textString = L" " + std::to_wstring(gameStat.loadedMap.currentBpm) + L"bpm (x" + Utilities::to_wstring_with_precision(gameStat.loadedMap.currentSpeed, 2) + L")";
+            textString = L" " + std::to_wstring(gameStat.loadedMap.currentBpm) + L"bpm" + (gameStat.loadedMap.kiai ? L"☆ " : L" ") + L"(x" + Utilities::to_wstring_with_precision(gameStat.loadedMap.currentSpeed, 2) + L")";
             m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
                 m_fontPos, Colors::Yellow, 0.f, origin, 0.5f);
             m_fontPos.x += XMVectorGetX(m_font->MeasureString(textString.c_str())) * 0.5f;
 
             if (next_timingpoint != nullptr)
             {
-                textString = L" -> " + std::to_wstring(next_timingpoint->getBPM()) + L"bpm (x" + Utilities::to_wstring_with_precision(next_timingpoint->velocity, 2) + L") -" + std::to_wstring(next_timingpoint->offset - gameStat.osuMapTime);
+                textString = L" -> " + std::to_wstring(next_timingpoint->getBPM()) + L"bpm" + (next_timingpoint->kiai ? L"☆ " : L" ") + L"(x" + Utilities::to_wstring_with_precision(next_timingpoint->velocity, 2) + L") -" + Utilities::to_wstring_with_precision(gameStat.GetSecondsFromOsuTime(next_timingpoint->offset - gameStat.osuMapTime), 2) + L"s";
                 m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
                     m_fontPos, Colors::White, 0.f, origin, 0.5f);
             }
@@ -1110,6 +1166,7 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
     double slider_time_actual = ((object.end_time - object.start_time) / object.repeat);
     double start_time_actual = object.start_time + ((object.end_time - object.start_time) / object.repeat) * (object.repeat - 1);
     double time_till_actual_start = start_time_actual - time;
+    double completion_end_actual = time_till_actual_start > 0 ? 0.0f : (1.f - (time_left / slider_time_actual));
 
     /*
     OutputDebugStringW(L"DrawSlider: slidercurvesize: ");
@@ -1119,27 +1176,28 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
     OutputDebugStringW(L"\n");
     */
 
-    int32_t a = 1000, b = 1000;
-    m_font->DrawString(m_spriteBatch.get(), (object.slidertype + L" " + std::to_wstring(time_left)).c_str(),
+    /*m_font->DrawString(m_spriteBatch.get(), (object.slidertype + L" " + std::to_wstring(time_left)).c_str(),
         GetScreenCoordFromOsuPixelStandard(&object),
-        color, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.3);
+        color, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.3);*/
 
     if (object.slidertype == L"B")
     {
+        //std::clamp((1.f + (float)((float)(time - start_time_actual) / (start_time_actual - object.end_time))), 0.f, 1.f);
+
         for (int32_t i = 0; i < object.slidercurves.size(); i++)
         {
             //double time = i * timePerSection;
 
             if (curves.size() != 0 && curves.back() == object.slidercurves.at(i))
             {
-                DrawSliderPartBiezer(init_curve, curves, length_left, color);
+                DrawSliderPartBiezer(init_curve, curves, length_left, color, completion_end_actual, object.repeat % 2 == 0);
                 init_curve = object.slidercurves.at(i);
                 curves.clear();
             }
             curves.push_back(object.slidercurves.at(i));
         }
 
-        DrawSliderPartBiezer(init_curve, curves, length_left, color, 0.0f, &end_point);
+        DrawSliderPartBiezer(init_curve, curves, length_left, color, completion_end_actual, &end_point);
 
         /*DebugDrawSliderPoints(
             object.x,
@@ -1154,12 +1212,11 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
     else if (object.slidertype == L"L")
     {
         slidercurve first_curve = init_curve;
-        float inv_completion_total = std::clamp((1.f + (float)((float)(time - start_time_actual) / (start_time_actual - object.end_time))), 0.f, 1.f);
 
         for (int i = 0; i < object.slidercurves.size(); i++)
         {
             //float section_completion = ((time_left - start_time_actual) - (i * (slider_time_actual / object.slidercurves.size())));
-            DrawSliderLinear(first_curve, object.slidercurves.at(i), length_left, color, 0.0f, &end_point);
+            DrawSliderLinear(first_curve, object.slidercurves.at(i), length_left, color, completion_end_actual, object.repeat % 2 == 0, &end_point);
             first_curve = object.slidercurves.at(i);
         }
 
@@ -1173,7 +1230,7 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
     else if (object.slidertype == L"P")
     {
         // PerfectCircle
-        DrawSliderPerfectCircle(init_curve, object.slidercurves, length_left, color, 0.0f, &end_point);
+        DrawSliderPerfectCircle(init_curve, object.slidercurves, length_left, color, completion_end_actual, object.repeat % 2 == 0, &end_point);
 
         // temp
         //end_point = Utilities::SliderCurveToVector2(object.slidercurves.back());
@@ -1216,7 +1273,7 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
     return;  // should be sliderend
 }
 
-inline void Overlay::DrawSliderPerfectCircle(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion, DirectX::SimpleMath::Vector2 *vec)
+inline void Overlay::DrawSliderPerfectCircle(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t completion, bool reverse, DirectX::SimpleMath::Vector2 *vec)
 {
     // https://github.com/ppy/osu/blob/a8579c49f9327b0a4a8278a76167e081d14ea516/osu.Game/Rulesets/Objects/CircularArcApproximator.cs
     // copy-paste modification
@@ -1292,6 +1349,18 @@ inline void Overlay::DrawSliderPerfectCircle(slidercurve init_point, std::vector
         ));
     }
 
+    int max = (amountPoints * (completion));
+
+    for (int i = 0; i < max; ++i)
+    {
+        if (output.size() == 0)
+            break;
+        if (!reverse)
+            output.erase(output.begin() + 0);
+        else
+            output.pop_back();
+    }
+
     if (output.size() > 0)
     {
         m_batch->Draw(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP,
@@ -1306,15 +1375,17 @@ inline void Overlay::DrawSliderPerfectCircle(slidercurve init_point, std::vector
 /**
 
 */
-inline void Overlay::DrawSliderLinear(slidercurve init_point, slidercurve &curve, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion, DirectX::SimpleMath::Vector2 *vec)
+inline void Overlay::DrawSliderLinear(slidercurve init_point, slidercurve &curve, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion, bool reverse, DirectX::SimpleMath::Vector2 *vec)
 {
     DirectX::SimpleMath::Vector2 init_pt = Utilities::SliderCurveToVector2(init_point),
         curve_pt = Utilities::SliderCurveToVector2(curve);
 
     DirectX::SimpleMath::Vector2 vec_final = Utilities::ClampVector2Magnitude(init_pt, curve_pt, dist_left);
 
-    double x1 = init_point.x + vec_final.x * inv_completion,
-        y1 = init_point.y + vec_final.y * inv_completion;
+    double x1 = init_point.x + (vec_final.x - init_point.x) * (inv_completion),
+        y1 = init_point.y + (vec_final.y - init_point.y) * (inv_completion);
+
+    // TODO REVERSE AND STUFF
 
     m_batch->DrawLine(
         DirectX::VertexPositionColor(
@@ -1329,10 +1400,11 @@ inline void Overlay::DrawSliderLinear(slidercurve init_point, slidercurve &curve
     dist_left -= DirectX::SimpleMath::Vector2::Distance(init_pt, curve_pt);
 }
 
-void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion, DirectX::SimpleMath::Vector2 *vec)
+void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t completion, bool reverse, DirectX::SimpleMath::Vector2 *vec)
 {
     int size = curves.size();
     std::vector<int> x_p, y_p;
+    double x, y;
     std::vector<DirectX::VertexPositionColor> lines;
     x_p.push_back(init_point.x);
     y_p.push_back(init_point.y);
@@ -1343,10 +1415,18 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
         //  dist_left -= curves.at(i).x
     }
 
-    for (double t = inv_completion; t <= 1; t += 0.1)
+    DirectX::SimpleMath::Vector2 previous_point = DirectX::SimpleMath::Vector2(
+        Utilities::getBezierPoint(&x_p, 0), Utilities::getBezierPoint(&y_p, 0)
+    );
+
+    float segment_distance = 0.f;
+
+    for (double t = 0; t <= 1; t += 0.1)
     {
-        double x = Utilities::getBezierPoint(&x_p, t);
-        double y = Utilities::getBezierPoint(&y_p, t);
+        x = Utilities::getBezierPoint(&x_p, t);
+        y = Utilities::getBezierPoint(&y_p, t);
+
+        segment_distance += DirectX::SimpleMath::Vector2::Distance(previous_point, DirectX::SimpleMath::Vector2(x, y));
 
         lines.push_back(DirectX::VertexPositionColor(
             GetScreenCoordFromOsuPixelStandard(x, y),
@@ -1354,17 +1434,28 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
         ));
     }
 
+    float part_ratio = segment_distance / dist_left;
+
+    //float part_wtf = dist_left - segment_distance / dist_left;
+
+    /*int max = (lines.size() * (completion));
+
+    for (int i = 0; i < max; ++i)
+    {
+        if (lines.size() == 0)
+            break;
+        if (!false)
+            lines.erase(lines.begin() + 0);
+        else
+            lines.pop_back();
+    }*/
+
     if (lines.size() > 0)
     {
         m_batch->Draw(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP,
             lines.data(),
             lines.size()
         );
-    }
-
-    if (vec != nullptr)
-    {
-        //*vec = lines.back().position;
     }
 }
 
@@ -1436,6 +1527,8 @@ void Overlay::Clear()
 {
     // Clear the views.
     m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Colors::Green);
+    //m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Colors::Black);
+
     m_d3dContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
     m_d3dContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());

@@ -266,13 +266,22 @@ void osuGame::CheckMap()
 
     if (loadedMap.MD5_Hash != MemoryBeatMapMD5)
     {
+        //  invalid beatmapfile, skip.
+        //  this is validated twice but like i care.
+        std::wifstream beatmap_file(GetFolderActual(), std::ifstream::in);
+
+        if (!beatmap_file.good()) {
+            OutputDebugStringW(L"GetFolderActual() is invalid! skipping.\n");
+            return;
+        }
+
         OutputDebugStringW(L"Loading mapset: ");
         OutputDebugStringW(MemoryBeatMapMD5.c_str());
         OutputDebugStringW(L" ");
         OutputDebugStringW(MemoryBeatMapFileName.c_str());
         OutputDebugStringW(L"\n");
         loadedMap.Unload();
-        //loadedMap.BeatMapID = MemoryBeatMapID;
+
         try
         {
             if (!loadedMap.Parse(GetFolderActual(), MemoryBeatMapMD5))

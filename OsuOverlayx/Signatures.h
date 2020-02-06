@@ -171,6 +171,7 @@ public:
     \xff\xe0\x8b\x45\x00\x8b\x48\x00\x09\x0d xxxx?xx?xx
 
     \xff\xe0\x8b\x45\x00\x8b\x48\x00\x09\x0d xxxx?xx?xx
+    \xff\xe0\x8b\x45\x00\x8b\x48\x00\x09\x0d xxxx?xx?xx
     */
 
     static constexpr unsigned char MODS[] = { 0xFF, 0xE0, 0x8B, 0x45, 0x00, 0x8B, 0x48, 0x00, 0x09, 0x0D };
