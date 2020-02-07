@@ -987,6 +987,8 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                 GetScreenCoordFromOsuPixelStandard(next_object),
                 Colors::Yellow, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
 
+            auto getTime = [](int time, int32_t n_stime, int32_t c_stime) -> double { return ((double)(time - n_stime) / (n_stime - c_stime)); };
+
             double time_persent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
 
             int32_t start_x = current_object->x, start_y = current_object->y;
@@ -1009,9 +1011,13 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                 )
             );
 
+            bool prev_slider_rev_rend_done = true;
+
             if (next_object->IsSlider())
             {
-                Overlay::DrawSlider(*next_object, gameStat.osuMapTime, Colors::Yellow);
+                time_persent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
+                time_persent = time_persent * 4;
+                Overlay::DrawSlider(*next_object, gameStat.osuMapTime, Colors::Yellow, true, time_persent, &prev_slider_rev_rend_done);
             }
 
             if (upcoming_object != nullptr)
@@ -1027,15 +1033,27 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                     start_x = next_object->repeat % 2 == 0 ? next_object->x : next_object->x_sliderend_real;
                     start_y = next_object->repeat % 2 == 0 ? next_object->y : next_object->y_sliderend_real;
 
-                    /*
-                    m_font->DrawString(m_spriteBatch.get(), L"- -",
-                        GetScreenCoordFromOsuPixelStandard(start_x, start_y),
-                        Colors::Yellow, 0.f, m_font->MeasureString(L"- -") * 0.6f, 0.6f);
-                     */
+                    if (prev_slider_rev_rend_done && next_object->IsSlider()) // prev_slider_rev_rend_done &&
+                    {
+                        time_persent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
+                        time_persent = time_persent * 2;
+                    }
+                    else {
+                        time_persent = 0;
+                    }
+
+                    /*m_font->DrawString(m_spriteBatch.get(), (
+                        std::to_wstring(time_persent)
+                        ).c_str(),
+                        DirectX::SimpleMath::Vector2(500, 500),
+                        Colors::White, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.3);*/
                 }
 
-                time_persent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
-                time_persent = time_persent * 4;
+                if (!next_object->IsSlider())
+                {
+                    time_persent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
+                    time_persent = time_persent * 4;
+                }
 
                 m_batch->DrawLine(
                     DirectX::VertexPositionColor(
@@ -1146,7 +1164,7 @@ void Overlay::DebugDrawSliderPoints(int x, int y, std::vector<slidercurve> &poin
     }
 }
 
-void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 color)
+void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 color, bool reverse, float_t reverse_completion, bool* rev_render_complete)
 {
     if (!object.IsSlider())
         return;
@@ -1167,18 +1185,29 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
     double start_time_actual = object.start_time + ((object.end_time - object.start_time) / object.repeat) * (object.repeat - 1);
     double time_till_actual_start = start_time_actual - time;
     double completion_end_actual = time_till_actual_start > 0 ? 0.0f : (1.f - (time_left / slider_time_actual));
+    if (reverse)
+        completion_end_actual = std::clamp(1.f - reverse_completion, 0.f, 1.f);
 
-    /*
-    OutputDebugStringW(L"DrawSlider: slidercurvesize: ");
-    OutputDebugStringW(std::to_wstring(object.slidercurves.size()).c_str());
-    OutputDebugStringW(L" type: ");
-    OutputDebugStringW(object.slidertype.c_str());
-    OutputDebugStringW(L"\n");
-    */
+    if (rev_render_complete != nullptr && reverse)
+        *rev_render_complete = completion_end_actual == 0.f;
+    //reverse_completion < 1 ? 1.f : reverse_completion;
 
-    /*m_font->DrawString(m_spriteBatch.get(), (object.slidertype + L" " + std::to_wstring(time_left)).c_str(),
+/*
+OutputDebugStringW(L"DrawSlider: slidercurvesize: ");
+OutputDebugStringW(std::to_wstring(object.slidercurves.size()).c_str());
+OutputDebugStringW(L" type: ");
+OutputDebugStringW(object.slidertype.c_str());
+OutputDebugStringW(L"\n");
+*/
+
+    m_font->DrawString(m_spriteBatch.get(), (
+        std::to_wstring(completion_end_actual) + L" " +
+        std::to_wstring(object.x_sliderend_real) + L" " +
+        std::to_wstring(object.y_sliderend_real) + L" " + (reverse ? L"r:True" : L"r:False") + L" " + (rev_render_complete != nullptr && *rev_render_complete ? L"c:True" : L"c:False") + L" " +
+        std::to_wstring((int)(time_left / slider_time_actual))
+        ).c_str(),
         GetScreenCoordFromOsuPixelStandard(&object),
-        color, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.3);*/
+        color, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.3);
 
     if (object.slidertype == L"B")
     {
@@ -1190,14 +1219,14 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
 
             if (curves.size() != 0 && curves.back() == object.slidercurves.at(i))
             {
-                DrawSliderPartBiezer(init_curve, curves, length_left, color, completion_end_actual, object.repeat % 2 == 0);
+                DrawSliderPartBiezer(init_curve, curves, length_left, color, completion_end_actual, object.repeat % 2 == 0 || reverse);
                 init_curve = object.slidercurves.at(i);
                 curves.clear();
             }
             curves.push_back(object.slidercurves.at(i));
         }
 
-        DrawSliderPartBiezer(init_curve, curves, length_left, color, completion_end_actual, &end_point);
+        DrawSliderPartBiezer(init_curve, curves, length_left, color, completion_end_actual, object.repeat % 2 == 0 || reverse, &end_point);
 
         /*DebugDrawSliderPoints(
             object.x,
@@ -1216,7 +1245,7 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
         for (int i = 0; i < object.slidercurves.size(); i++)
         {
             //float section_completion = ((time_left - start_time_actual) - (i * (slider_time_actual / object.slidercurves.size())));
-            DrawSliderLinear(first_curve, object.slidercurves.at(i), length_left, color, completion_end_actual, object.repeat % 2 == 0, &end_point);
+            DrawSliderLinear(first_curve, object.slidercurves.at(i), length_left, color, completion_end_actual, object.repeat % 2 == 0 || reverse, &end_point);
             first_curve = object.slidercurves.at(i);
         }
 
@@ -1230,7 +1259,7 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
     else if (object.slidertype == L"P")
     {
         // PerfectCircle
-        DrawSliderPerfectCircle(init_curve, object.slidercurves, length_left, color, completion_end_actual, object.repeat % 2 == 0, &end_point);
+        DrawSliderPerfectCircle(init_curve, object.slidercurves, length_left, color, completion_end_actual, object.repeat % 2 == 0 || reverse, &end_point);
 
         // temp
         //end_point = Utilities::SliderCurveToVector2(object.slidercurves.back());
@@ -1377,22 +1406,20 @@ inline void Overlay::DrawSliderPerfectCircle(slidercurve init_point, std::vector
 */
 inline void Overlay::DrawSliderLinear(slidercurve init_point, slidercurve &curve, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion, bool reverse, DirectX::SimpleMath::Vector2 *vec)
 {
+    if (dist_left < 0.0)
+        return;
+
     DirectX::SimpleMath::Vector2 init_pt = Utilities::SliderCurveToVector2(init_point),
         curve_pt = Utilities::SliderCurveToVector2(curve);
 
     DirectX::SimpleMath::Vector2 vec_final = Utilities::ClampVector2Magnitude(init_pt, curve_pt, dist_left);
 
-    double x1 = init_point.x + (vec_final.x - init_point.x) * (inv_completion),
-        y1 = init_point.y + (vec_final.y - init_point.y) * (inv_completion);
-
-    // TODO REVERSE AND STUFF
-
     m_batch->DrawLine(
         DirectX::VertexPositionColor(
-            GetScreenCoordFromOsuPixelStandard(x1, y1), color
+            GetScreenCoordFromOsuPixelStandard(init_pt + ((vec_final - init_pt) * (reverse ? 0.f : inv_completion))), color
         ),
         DirectX::VertexPositionColor(
-            GetScreenCoordFromOsuPixelStandard(vec_final), color
+            GetScreenCoordFromOsuPixelStandard(vec_final + ((init_pt - vec_final) * (reverse ? inv_completion : 0.f))), color
         )
     );
 
@@ -1402,6 +1429,9 @@ inline void Overlay::DrawSliderLinear(slidercurve init_point, slidercurve &curve
 
 void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t completion, bool reverse, DirectX::SimpleMath::Vector2 *vec)
 {
+    if (dist_left < 0.0)
+        return;
+
     int size = curves.size();
     std::vector<int> x_p, y_p;
     double x, y;
@@ -1526,8 +1556,8 @@ XMVECTOR Overlay::RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vect
 void Overlay::Clear()
 {
     // Clear the views.
-    m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Colors::Green);
-    //m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Colors::Black);
+    //m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Colors::Green);
+    m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Colors::Black);
 
     m_d3dContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 

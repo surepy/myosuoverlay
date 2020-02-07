@@ -99,7 +99,7 @@ private:
         );
     }
 
-    void DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 color);
+    void DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 color, bool reverse = false, float_t reverse_completion = 0.f, bool* render_complete = nullptr);
 
     inline void DrawSliderLinear(slidercurve init_point, slidercurve &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t completion = 0.f, bool reverse = false, DirectX::SimpleMath::Vector2 *vec = nullptr);
 
