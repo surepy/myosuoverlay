@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Beatmap.h"
 #include "OsuOverlay.h"
 #include <algorithm>
@@ -270,6 +271,11 @@ bool beatmap::Parse(const std::wstring filename, const std::wstring md5hash) {
 
 void beatmap::Unload()
 {
+    if (!this->loaded)
+    {
+        return;
+    }
+
     this->BeatMapID = 0;
     this->BeatmapSetID = 0;
     /*

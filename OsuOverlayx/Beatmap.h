@@ -25,6 +25,14 @@ struct slidercurve {
     {
         return this->x == curve.x && this->y == curve.y;
     }
+
+    operator DirectX::SimpleMath::Vector2*() const {
+        return &DirectX::SimpleMath::Vector2(x, y);
+    }
+
+    operator DirectX::SimpleMath::Vector2() const {
+        return DirectX::SimpleMath::Vector2(x, y);
+    }
 };
 
 struct hitobject {
@@ -55,6 +63,10 @@ struct hitobject {
 
     bool IsNewCombo() const {
         return (type & HITOBJECT_NEW_COMBO) == HITOBJECT_NEW_COMBO;
+    }
+
+    operator DirectX::SimpleMath::Vector2() const {
+        return DirectX::SimpleMath::Vector2(x, y);
     }
 
     std::vector<slidercurve> slidercurves;

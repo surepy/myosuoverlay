@@ -1006,7 +1006,7 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                     DirectX::Colors::LightBlue
                 ),
                 DirectX::VertexPositionColor(
-                    GetScreenCoordFromOsuPixelStandard(next_object->x, next_object->y),
+                    GetScreenCoordFromOsuPixelStandard(next_object),
                     DirectX::Colors::Yellow
                 )
             );
@@ -1236,7 +1236,7 @@ OutputDebugStringW(L"\n");
         );*/
 
         //temp
-        end_point = Utilities::SliderCurveToVector2(object.slidercurves.back());
+        //end_point = static_cast<DirectX::SimpleMath::Vector2>(object.slidercurves.back());
     }
     else if (object.slidertype == L"L")
     {
@@ -1275,9 +1275,9 @@ OutputDebugStringW(L"\n");
                 GetScreenCoordFromOsuPixelStandard(
                     DirectX::SimpleMath::Vector2::CatmullRom(
                         DirectX::SimpleMath::Vector2(object.x, object.y),
-                        Utilities::SliderCurveToVector2(object.slidercurves.at(0)),
-                        Utilities::SliderCurveToVector2(object.slidercurves.at(1)),
-                        Utilities::SliderCurveToVector2(object.slidercurves.at(2)),
+                        static_cast<DirectX::SimpleMath::Vector2>(object.slidercurves.at(0)),
+                        static_cast<DirectX::SimpleMath::Vector2>(object.slidercurves.at(1)),
+                        static_cast<DirectX::SimpleMath::Vector2>(object.slidercurves.at(2)),
                         t
                     )
                 ), color
@@ -1294,7 +1294,7 @@ OutputDebugStringW(L"\n");
         DebugDrawSliderPoints(object.x, object.y, object.slidercurves, color);
 
         //temp
-        end_point = Utilities::SliderCurveToVector2(object.slidercurves.back());
+        end_point = static_cast<DirectX::SimpleMath::Vector2>(object.slidercurves.back());
     }
 
     object.x_sliderend_real = end_point.x;
@@ -1314,8 +1314,8 @@ inline void Overlay::DrawSliderPerfectCircle(slidercurve init_point, std::vector
     const long double pi = (atan(1) * 4);
 
     DirectX::SimpleMath::Vector2 first = DirectX::SimpleMath::Vector2(init_point.x, init_point.y),  // first
-        second = Utilities::SliderCurveToVector2(curves.at(0)), // passthrough
-        third = Utilities::SliderCurveToVector2(curves.at(1));  // end
+        second = static_cast<DirectX::SimpleMath::Vector2>(curves.at(0)), // passthrough
+        third = static_cast<DirectX::SimpleMath::Vector2>(curves.at(1));  // end
 
     double aSq = DirectX::SimpleMath::Vector2::DistanceSquared(second, third);
     double bSq = DirectX::SimpleMath::Vector2::DistanceSquared(first, third);
@@ -1398,7 +1398,7 @@ inline void Overlay::DrawSliderPerfectCircle(slidercurve init_point, std::vector
         );
     }
 
-    *vec = Utilities::SliderCurveToVector2(curves.back());
+    *vec = static_cast<DirectX::SimpleMath::Vector2>(curves.back());
 }
 
 /**
@@ -1409,8 +1409,8 @@ inline void Overlay::DrawSliderLinear(slidercurve init_point, slidercurve &curve
     if (dist_left < 0.0)
         return;
 
-    DirectX::SimpleMath::Vector2 init_pt = Utilities::SliderCurveToVector2(init_point),
-        curve_pt = Utilities::SliderCurveToVector2(curve);
+    DirectX::SimpleMath::Vector2 init_pt = static_cast<DirectX::SimpleMath::Vector2>(init_point),
+        curve_pt = static_cast<DirectX::SimpleMath::Vector2>(curve);
 
     DirectX::SimpleMath::Vector2 vec_final = Utilities::ClampVector2Magnitude(init_pt, curve_pt, dist_left);
 
@@ -1451,7 +1451,7 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
 
     float segment_distance = 0.f;
 
-    for (double t = 0; t <= 1; t += 0.1)
+    for (double t = 0; t <= 1; t += 0.01)
     {
         x = Utilities::getBezierPoint(&x_p, t);
         y = Utilities::getBezierPoint(&y_p, t);
@@ -1465,6 +1465,7 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
     }
 
     float part_ratio = segment_distance / dist_left;
+    //dist_left -= segment_distance;
 
     //float part_wtf = dist_left - segment_distance / dist_left;
 
@@ -1487,6 +1488,9 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
             lines.size()
         );
     }
+
+    if (vec != nullptr)
+        *vec = DirectX::SimpleMath::Vector2(Utilities::getBezierPoint(&x_p, 1.0), Utilities::getBezierPoint(&y_p, 1.0));
 }
 
 XMVECTOR Overlay::RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &fontPos, DirectX::XMVECTORF32 tColor, DirectX::XMVECTORF32 bgColor, int v, float fontsize)

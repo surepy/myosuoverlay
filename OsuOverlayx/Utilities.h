@@ -83,7 +83,7 @@ public:
         }
     };
 
-    static int64_t factorial(int n)
+    static uint64_t factorial(int n)
     {
         if (n == 0)
             return 1;
@@ -91,9 +91,23 @@ public:
             return n * factorial(n - 1);
     }
 
-    static double binomialCoeff(int n, int k)
+    static uint32_t binomialCoeff(int n, int k)
     {
-        return ((double)factorial(n) / (double)(factorial((n - k)) * factorial(k)));
+        int res = 1;
+
+        // Since C(n, k) = C(n, n-k)
+        if (k > n - k)
+            k = n - k;
+
+        // Calculate value of
+        // [n * (n-1) *---* (n-k+1)] / [k * (k-1) *----* 1]
+        for (int i = 0; i < k; ++i)
+        {
+            res *= (n - i);
+            res /= (i + 1);
+        }
+
+        return res;
     }
 
     static double getBezierPoint(std::vector<int> *points, double t) {
@@ -104,15 +118,8 @@ public:
         {
             answer += (binomialCoeff(n, i) *  std::pow((1 - t), (n - i))  * std::pow(t, i) * (double)points->at(i));
         }
-        return answer;
-    }
 
-    /*static DirectX::SimpleMath::Vector2 getBezierPoint()
-    {
-    }*/
-    inline static DirectX::SimpleMath::Vector2 SliderCurveToVector2(slidercurve point)
-    {
-        return DirectX::SimpleMath::Vector2(point.x, point.y);
+        return answer;
     }
 
     static DirectX::SimpleMath::Vector2 ClampVector2Magnitude(DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &vector, double length)
