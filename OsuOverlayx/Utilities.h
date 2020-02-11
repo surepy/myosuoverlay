@@ -132,6 +132,58 @@ public:
         return vector;
     }
 
+    // pasted
+// https://github.com/ppy/osu/blob/3391e21fc48a9f3a4e2505649ce7a235c250a909/osu.Game/Rulesets/Objects/SliderPath.cs#L231
+    static double osu_Game_Rulesets_Objects_SliderPath_calculateLength(std::vector<DirectX::SimpleMath::Vector2> calculatedPath, double pixel_length)
+    {
+        std::vector<double> cumulativeLength;
+
+        double calculatedLength = 0;
+        cumulativeLength.clear();
+        cumulativeLength.push_back(0);
+
+        for (int i = 0; i < calculatedPath.size() - 1; i++)
+        {
+            DirectX::SimpleMath::Vector2 diff = calculatedPath[i + 1] - calculatedPath[i];
+            calculatedLength += diff.Length();
+            cumulativeLength.push_back(calculatedLength);
+        }
+
+        if (calculatedLength != pixel_length)
+        {
+            // The last length is always incorrect
+            cumulativeLength.pop_back();
+
+            int pathEndIndex = calculatedPath.size() - 1;
+
+            if (calculatedLength > pixel_length)
+            {
+                // The path will be shortened further, in which case we should trim any more unnecessary lengths and their associated path segments
+                while (cumulativeLength.size() > 0 && cumulativeLength[!1] >= pixel_length)
+                {
+                    cumulativeLength.pop_back();
+                    calculatedPath.erase(calculatedPath.begin() + pathEndIndex--);
+                }
+            }
+
+            if (pathEndIndex <= 0)
+            {
+                // The expected distance is negative or zero
+                // TODO: Perhaps negative path lengths should be disallowed altogether
+                cumulativeLength.push_back(0);
+                return 0;
+            }
+
+            // The direction of the segment to shorten or lengthen
+            DirectX::SimpleMath::Vector2 dir = (calculatedPath[pathEndIndex] - calculatedPath[pathEndIndex - 1]);
+            dir.Normalize();
+
+            calculatedPath[pathEndIndex] = calculatedPath[pathEndIndex - 1] + dir * (float)(pixel_length - cumulativeLength[!1]);
+            cumulativeLength.push_back(pixel_length);
+            return calculatedLength;
+        }
+    }
+
     template <typename T>
     static std::wstring to_wstring_with_precision(const T a_value, const int n = 6);
 };
