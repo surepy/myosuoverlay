@@ -1200,16 +1200,23 @@ OutputDebugStringW(object.slidertype.c_str());
 OutputDebugStringW(L"\n");
 */
 
+    uint32_t slider_left = std::clamp(static_cast<uint32_t>(time_left / slider_time_actual), (uint32_t)0, object.repeat - 1);
+
 #ifdef _DEBUG
-    m_font->DrawString(m_spriteBatch.get(), (
+    m_font->DrawString(m_spriteBatch.get(), (object.slidertype + L" " +
         std::to_wstring(completion_end_actual) + L" " +
         std::to_wstring(object.x_sliderend_real) + L" " +
         std::to_wstring(object.y_sliderend_real) + L" " + (reverse ? L"r:True" : L"r:False") + L" " + (rev_render_complete != nullptr && *rev_render_complete ? L"c:True" : L"c:False") + L" " +
-        std::to_wstring((int)(time_left / slider_time_actual))
+        std::to_wstring(slider_left)
         ).c_str(),
         GetScreenCoordFromOsuPixelStandard(&object),
         color, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.3);
     DebugDrawSliderPoints(object.x, object.y, object.slidercurves, Colors::Brown);
+#else
+    if (slider_left > 0)
+        m_font->DrawString(m_spriteBatch.get(), (std::to_wstring(slider_left) + (slider_left % 2 == 1 ? L" inv" : L" str")).c_str(),
+            GetScreenCoordFromOsuPixelStandard(object.x_sliderend_real, object.y_sliderend_real),
+            color, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.5);
 #endif
 
     if (object.slidertype == L"B")
@@ -1434,7 +1441,7 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
     std::vector<DirectX::VertexPositionColor> lines;
     x_p.push_back(init_point.x);
     y_p.push_back(init_point.y);
-    //DirectX::SimpleMath::Vector2 prev_point = DirectX::SimpleMath::Vector2(init_point.x, y);
+    DirectX::SimpleMath::Vector2 prev_point;
 
     for (int i = 0; i < curves.size(); i++)
     {
@@ -1443,12 +1450,18 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
 
         if (i + 1 < curves.size() && curves.at(i) == curves.at(i + 1))
         {
-            for (double t = 0; t <= 1; t += 0.1)
+            prev_point = DirectX::SimpleMath::Vector2(x_p.front(), y_p.front());
+            for (double t = 0; t <= 1; t += 0.01)
             {
                 x = Utilities::getBezierPoint(&x_p, t);
                 y = Utilities::getBezierPoint(&y_p, t);
 
-                //prev_point = DirectX::SimpleMath::Vector2(x, y);
+                if (DirectX::SimpleMath::Vector2::Distance(prev_point, DirectX::SimpleMath::Vector2(x, y)) < 10 && t != 0)
+                {
+                    continue;
+                }
+
+                prev_point = DirectX::SimpleMath::Vector2(x, y);
 
                 lines.push_back(DirectX::VertexPositionColor(
                     GetScreenCoordFromOsuPixelStandard(x, y),
@@ -1460,10 +1473,19 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
         }
     }
 
-    for (double t = 0; t <= 1; t += 0.1)
+    prev_point = DirectX::SimpleMath::Vector2(x_p.front(), y_p.front());
+
+    for (double t = 0; t <= 1; t += 0.01)
     {
         x = Utilities::getBezierPoint(&x_p, t);
         y = Utilities::getBezierPoint(&y_p, t);
+
+        if (DirectX::SimpleMath::Vector2::Distance(prev_point, DirectX::SimpleMath::Vector2(x, y)) < 10 && t != 0)
+        {
+            continue;
+        }
+
+        prev_point = DirectX::SimpleMath::Vector2(x, y);
 
         lines.push_back(DirectX::VertexPositionColor(
             GetScreenCoordFromOsuPixelStandard(x, y),
@@ -1471,11 +1493,14 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
         ));
     }
 
-    /*if (vec == nullptr)
+    // line connection
+    if (lines.back().position.x != Utilities::getBezierPoint(&x_p, 1.0) && lines.back().position.y != Utilities::getBezierPoint(&y_p, 1.0))
+    {
         lines.push_back(DirectX::VertexPositionColor(
-            GetScreenCoordFromOsuPixelStandard(curves.back()),
+            GetScreenCoordFromOsuPixelStandard(Utilities::getBezierPoint(&x_p, 1.0), Utilities::getBezierPoint(&y_p, 1.0)),
             color
-        ));*/
+        ));
+    }
 
     int max = (lines.size() * (completion));
 
@@ -1497,7 +1522,7 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
         );
 
 #ifdef _DEBUG
-        m_font->DrawString(m_spriteBatch.get(), (std::to_wstring(dist_left) + L" ").c_str(),
+        m_font->DrawString(m_spriteBatch.get(), (std::to_wstring(dist_left) + L" " + std::to_wstring(lines.size())).c_str(),
             DirectX::SimpleMath::Vector2(lines.back().position.x, lines.back().position.y),
             Colors::Yellow, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.3f);
 #endif // _DEBUG
@@ -1578,7 +1603,7 @@ void Overlay::Clear()
 #ifdef _DEBUG
     m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Colors::Black);
 #else
-    m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Colors::Green);
+    m_d3dContext->ClearRenderTargetView(m_renderTargetView.Get(), Colors::Brown);
 #endif // _DEBUG
 
     m_d3dContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);

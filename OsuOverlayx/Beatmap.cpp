@@ -44,7 +44,7 @@ inline bool beatmap::ParseTimingPoint(std::vector<std::wstring>& values) {
     catch (const std::out_of_range& e)
     {
         UNREFERENCED_PARAMETER(e);
-        offset = 0;
+        offset = -1;
     }
 
     float ms_per_beat;
@@ -150,8 +150,25 @@ inline bool beatmap::ParseHitObject(std::vector<std::wstring>& values) {
         this->hitobjects_sorted[row].push_back(new_hitobject);
     }
 
-    this->hitobjects.push_back(new_hitobject);
+    // thanks to https://osu.ppy.sh/beatmapsets/594828#osu/1258033
+    // the hitobjects are all over the fucking place motherfuck
 
+    if (this->hitobjects.size() == 0)
+    {
+        this->hitobjects.push_back(new_hitobject);
+        return true;
+    }
+
+    for (int i = 0; i < this->hitobjects.size(); i++)
+    {
+        if (this->hitobjects.at(i).start_time > new_hitobject.start_time)
+        {
+            this->hitobjects.insert(this->hitobjects.begin() + i, new_hitobject);
+            return true;
+        }
+    }
+
+    this->hitobjects.push_back(new_hitobject);
     return true;
 }
 

@@ -77,7 +77,7 @@ struct hitobject {
 };
 
 struct timingpoint {
-    uint32_t offset;
+    int32_t offset;
     float velocity;
     float ms_per_beat;
     bool kiai;
