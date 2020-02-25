@@ -983,26 +983,29 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                 return;
             }
 
+            // draw next object.
             m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
                 GetScreenCoordFromOsuPixelStandard(next_object),
                 Colors::Yellow, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
+            //
 
             auto getTime = [](int time, int32_t n_stime, int32_t c_stime) -> double { return ((double)(time - n_stime) / (n_stime - c_stime)); };
 
-            double time_persent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
+            double time_percent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
 
             int32_t start_x = current_object->x, start_y = current_object->y;
 
             if (current_object->IsSlider())
             {
-                time_persent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->end_time));
+                time_percent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->end_time));
                 start_x = (current_object->repeat % 2) == 0 ? current_object->x : current_object->x_sliderend_real;
                 start_y = (current_object->repeat % 2) == 0 ? current_object->y : current_object->y_sliderend_real;
             }
 
+            // draw current object -> next object line.
             m_batch->DrawLine(
                 DirectX::VertexPositionColor(
-                    GetScreenCoordFromOsuPixelStandard(start_x, start_y, next_object->x, next_object->y, &time_persent),
+                    GetScreenCoordFromOsuPixelStandard(start_x, start_y, next_object->x, next_object->y, &time_percent),
                     DirectX::Colors::LightBlue
                 ),
                 DirectX::VertexPositionColor(
@@ -1011,13 +1014,17 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                 )
             );
 
+            // next slider render is done?
             bool prev_slider_rev_rend_done = true;
+            double distCtoNObj = DirectX::SimpleMath::Vector2::Distance(DirectX::SimpleMath::Vector2(start_x, start_y), *next_object);
+            double distTotal = distCtoNObj + next_object->pixel_length;
+            double distRate = distCtoNObj / distTotal;
+            time_percent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
+            time_percent = time_percent * 2;
 
             if (next_object->IsSlider())
             {
-                time_persent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
-                time_persent = time_persent * 4;
-                Overlay::DrawSlider(*next_object, gameStat.osuMapTime, Colors::Yellow, true, time_persent, &prev_slider_rev_rend_done);
+                Overlay::DrawSlider(*next_object, gameStat.osuMapTime, Colors::Yellow, true, time_percent / distRate / 1.5, &prev_slider_rev_rend_done);
             }
 
             if (upcoming_object != nullptr)
@@ -1035,11 +1042,10 @@ void Overlay::RenderAssistant(osuGame &gameStat)
 
                     if (prev_slider_rev_rend_done && next_object->IsSlider()) // prev_slider_rev_rend_done &&
                     {
-                        time_persent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
-                        time_persent = time_persent * 2;
+                        time_percent = (time_percent / 1.5 - distRate);
                     }
                     else {
-                        time_persent = 0;
+                        time_percent = 0;
                     }
 
                     /*m_font->DrawString(m_spriteBatch.get(), (
@@ -1049,11 +1055,11 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                         Colors::White, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.3);*/
                 }
 
-                if (!next_object->IsSlider())
+                /*if (!next_object->IsSlider())
                 {
-                    time_persent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
-                    time_persent = time_persent * 4;
-                }
+                    time_percent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
+                    time_percent = time_percent * 2;
+                }*/
 
                 m_batch->DrawLine(
                     DirectX::VertexPositionColor(
@@ -1061,7 +1067,7 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                         DirectX::Colors::Yellow
                     ),
                     DirectX::VertexPositionColor(
-                        GetScreenCoordFromOsuPixelStandard(start_x, start_y, upcoming_object->x, upcoming_object->y, &time_persent),
+                        GetScreenCoordFromOsuPixelStandard(start_x, start_y, upcoming_object->x, upcoming_object->y, &time_percent),
                         DirectX::Colors::Aqua
                     )
                 );
