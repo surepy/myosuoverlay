@@ -1066,19 +1066,13 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                     start_x = next_object->repeat % 2 == 0 ? next_object->x : next_object->x_sliderend_real;
                     start_y = next_object->repeat % 2 == 0 ? next_object->y : next_object->y_sliderend_real;
 
-                    if (prev_slider_rev_rend_done && next_object->IsSlider()) // prev_slider_rev_rend_done &&
+                    if (prev_slider_rev_rend_done && next_object->IsSlider())
                     {
                         time_percent = (time_percent / 1.5 - distRate);
                     }
                     else {
                         time_percent = 0;
                     }
-
-                    /*m_font->DrawString(m_spriteBatch.get(), (
-                        std::to_wstring(time_persent)
-                        ).c_str(),
-                        DirectX::SimpleMath::Vector2(500, 500),
-                        Colors::White, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.3);*/
                 }
 
                 m_batch->DrawLine(
@@ -1204,68 +1198,23 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
 
     double length_left = object.pixel_length;
 
-    //double time_persent = 1.0 + ((double)(time - object.start_time) / (object.start_time - object.end_time));
-
     int32_t time_left = object.end_time - time;
     double slider_time_actual = ((object.end_time - object.start_time) / object.repeat);
     double start_time_actual = object.start_time + ((object.end_time - object.start_time) / object.repeat) * (object.repeat - 1);
     double time_till_actual_start = start_time_actual - time;
     double completion_end_actual = time_till_actual_start > 0 ? 0.0f : (1.f - (time_left / slider_time_actual));
+
     if (reverse)
         completion_end_actual = std::clamp(1.f - reverse_completion, 0.f, 1.f);
 
     if (rev_render_complete != nullptr && reverse)
         *rev_render_complete = completion_end_actual == 0.f;
-    //reverse_completion < 1 ? 1.f : reverse_completion;
-
-/*
-OutputDebugStringW(L"DrawSlider: slidercurvesize: ");
-OutputDebugStringW(std::to_wstring(object.slidercurves.size()).c_str());
-OutputDebugStringW(L" type: ");
-OutputDebugStringW(object.slidertype.c_str());
-OutputDebugStringW(L"\n");
-*/
 
     uint32_t slider_left = std::clamp(static_cast<uint32_t>(time_left / slider_time_actual), (uint32_t)0, object.repeat - 1);
 
-#ifdef _DEBUG
-    m_font->DrawString(m_spriteBatch.get(), (object.slidertype + L" " +
-        std::to_wstring(completion_end_actual) + L" " +
-        std::to_wstring(object.x_sliderend_real) + L" " +
-        std::to_wstring(object.y_sliderend_real) + L" " + (reverse ? L"r:True" : L"r:False") + L" " + (rev_render_complete != nullptr && *rev_render_complete ? L"c:True" : L"c:False") + L" " +
-        std::to_wstring(slider_left)
-        ).c_str(),
-        GetScreenCoordFromOsuPixelStandard(&object),
-        color, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.3);
-    DebugDrawSliderPoints(object.x, object.y, object.slidercurves, Colors::Brown);
-#else
-    if (slider_left > 0)
-        m_font->DrawString(m_spriteBatch.get(), (std::to_wstring(slider_left) + (slider_left % 2 == 1 ? L" inv" : L" str")).c_str(),
-            GetScreenCoordFromOsuPixelStandard(object.x_sliderend_real, object.y_sliderend_real),
-            color, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.5);
-#endif
-
     if (object.slidertype == L"B")
     {
-        //std::clamp((1.f + (float)((float)(time - start_time_actual) / (start_time_actual - object.end_time))), 0.f, 1.f);
-        /*
-        for (int32_t i = 0; i < object.slidercurves.size(); i++)
-        {
-            //double time = i * timePerSection;
-
-            if (curves.size() != 0 && curves.back() == object.slidercurves.at(i))
-            {
-                DrawSliderPartBiezer(init_curve, curves, length_left, color, completion_end_actual, object.repeat % 2 == 0 || reverse);
-                init_curve = object.slidercurves.at(i);
-                curves.clear();
-            }
-            curves.push_back(object.slidercurves.at(i));
-        }*/
-
         DrawSliderPartBiezer(init_curve, object.slidercurves, length_left, color, completion_end_actual, object.repeat % 2 == 0 || reverse, &end_point);
-
-        //temp
-        //end_point = static_cast<DirectX::SimpleMath::Vector2>(object.slidercurves.back());
     }
     else if (object.slidertype == L"L")
     {
@@ -1273,27 +1222,15 @@ OutputDebugStringW(L"\n");
 
         for (int i = 0; i < object.slidercurves.size(); i++)
         {
-            //float section_completion = ((time_left - start_time_actual) - (i * (slider_time_actual / object.slidercurves.size())));
             DrawSliderLinear(first_curve, object.slidercurves.at(i), length_left, color, completion_end_actual, object.repeat % 2 == 0 || reverse, &end_point);
             first_curve = object.slidercurves.at(i);
         }
-
-        /*DebugDrawSliderPoints(
-            object.x,
-            object.y,
-            object.slidercurves,
-            color
-        );*/
     }
     else if (object.slidertype == L"P")
     {
-        // PerfectCircle
         DrawSliderPerfectCircle(init_curve, object.slidercurves, length_left, color, completion_end_actual, object.repeat % 2 == 0 || reverse, &end_point);
-
-        // temp
-        //end_point = Utilities::SliderCurveToVector2(object.slidercurves.back());
     }
-    // is this even correct? not that it matters..
+    // is this even correct? not that it matters.. (C-type isn't used much)
     else if (object.slidertype == L"C")
     {
         std::vector<DirectX::VertexPositionColor> lines;
@@ -1328,7 +1265,26 @@ OutputDebugStringW(L"\n");
 
     object.x_sliderend_real = end_point.x;
     object.y_sliderend_real = end_point.y;
-    return;  // should be sliderend
+
+    // output string
+#ifdef _DEBUG
+    m_font->DrawString(m_spriteBatch.get(), (object.slidertype + L" " +
+        std::to_wstring(completion_end_actual) + L" " +
+        std::to_wstring(object.x_sliderend_real) + L" " +
+        std::to_wstring(object.y_sliderend_real) + L" " + (reverse ? L"r:True" : L"r:False") + L" " + (rev_render_complete != nullptr && *rev_render_complete ? L"c:True" : L"c:False") + L" " +
+        std::to_wstring(slider_left)
+        ).c_str(),
+        GetScreenCoordFromOsuPixelStandard(&object),
+        color, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.3);
+    DebugDrawSliderPoints(object.x, object.y, object.slidercurves, Colors::Brown);
+#else
+    if (slider_left > 0)
+        m_font->DrawString(m_spriteBatch.get(), (std::to_wstring(slider_left) + (slider_left % 2 == 1 ? L" inv" : L" str")).c_str(),
+            GetScreenCoordFromOsuPixelStandard(object.x_sliderend_real, object.y_sliderend_real),
+            color, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.5);
+#endif
+
+    return;
 }
 
 inline void Overlay::DrawSliderPerfectCircle(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t completion, bool reverse, DirectX::SimpleMath::Vector2 *vec)
@@ -1506,6 +1462,8 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
         x = Utilities::getBezierPoint(&x_p, t);
         y = Utilities::getBezierPoint(&y_p, t);
 
+        // you see, we need to make the segment distances the same. i chose 10.
+        // but i really don't know math and this seems to get close enough so this is a temporary measure.
         if (DirectX::SimpleMath::Vector2::Distance(prev_point, DirectX::SimpleMath::Vector2(x, y)) < 10 && t != 0)
         {
             continue;
@@ -1758,8 +1716,8 @@ void Overlay::CreateDevice()
             filter.DenyList.NumIDs = _countof(hide);
             filter.DenyList.pIDList = hide;
             d3dInfoQueue->AddStorageFilterEntries(&filter);
-        }
     }
+}
 #endif
 
     DX::ThrowIfFailed(device.As(&m_d3dDevice));
