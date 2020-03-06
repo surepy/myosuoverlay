@@ -85,6 +85,8 @@ public:
 
     static uint64_t factorial(int n)
     {
+        if (n < 0)
+            throw new std::range_error("no");
         if (n == 0)
             return 1;
         else

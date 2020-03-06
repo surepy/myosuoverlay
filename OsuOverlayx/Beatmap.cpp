@@ -194,6 +194,9 @@ inline bool beatmap::ParseDifficultySettings(std::wstring difficulty_line) {
         else if (!_wcsicmp(values[0].c_str(), L"CircleSize")) {
             this->CircleSize = std::stof(values[1]);
         }
+        else if (!_wcsicmp(values[0].c_str(), L"ApproachRate")) {
+            this->ApproachRate = std::stof(values[1]);
+        }
     }
 
     return true;

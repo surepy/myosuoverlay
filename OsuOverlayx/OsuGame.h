@@ -244,6 +244,50 @@ public:
         return SongFolderLocation + MemoryBeatMapFolderName + L"\\" + MemoryBeatMapFileName;
     }
 
+    double getAR_Real_Unclamped(double AR)
+    {
+        double ar_multiplier = 1;
+
+        if (hasMod(Mods::HardRock))
+        {
+            ar_multiplier *= 1.4;
+        }
+        else if (hasMod(Mods::Easy))
+        {
+            ar_multiplier *= 0.5;
+        }
+
+        /*if (hasMod(Mods::DoubleTime) || hasMod(Mods::Nightcore))
+        {
+            return (AR * ar_multiplier * 2 + 13) / 3;
+        }
+        else if (hasMod(Mods::HalfTime))
+        {
+            ar_multiplier *= 0.75;
+        }*/
+
+        return AR * ar_multiplier;
+    }
+
+    inline double getAR_Real(double AR)
+    {
+        return std::clamp(getAR_Real_Unclamped(AR), -5.0, hasMod(Mods::DoubleTime) || hasMod(Mods::Nightcore) ? 11.0 : 10.0);
+    }
+
+    int GetARDelay(double AR)
+    {
+        int delay = 450;
+
+        double ar = 10 - getAR_Real(AR);
+
+        if (ar <= 5)
+            delay += (ar - 1) * 150;
+        else if (ar > 5)
+            delay = 1200 + (ar - 5) * 120;
+
+        return std::clamp(delay, 300, 2400);
+    }
+
     /*
         Refactor todo
     */

@@ -45,6 +45,12 @@ struct hitobject {
     uint32_t repeat;
     uint32_t pixel_length;
 
+    bool operator==(hitobject *obj)
+    {
+        return this->x == obj->x && this->y == obj->y && this->start_time == obj->start_time
+            && this->end_time == obj->end_time && this->type == obj->type;
+    }
+
     bool IsCircle() const {
         return (type & HITOBJECT_CIRCLE) == HITOBJECT_CIRCLE;
     }
@@ -132,10 +138,13 @@ public:
     bool loaded;
 
     float CircleSize; //  note: this is amount of rows in mania.
+    float ApproachRate;
     float SliderMultiplier;
 
     std::vector<hitobject> hitobjects;
     std::vector<timingpoint> timingpoints;
+
+    std::vector<hitobject> aspire_dumb_slider_hitobjects;
 
     std::vector<hitobject> hitobjects_sorted[10];   // mostly for mania
 

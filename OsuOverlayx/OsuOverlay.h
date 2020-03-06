@@ -80,7 +80,7 @@ private:
     /**
         Gets Actual Screen coords from osupixel, this one is used for reading lines completion%
     */
-    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t &x1, int32_t &y1, int32_t &x2, int32_t &y2, double_t *inv_completion)
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x1, int32_t y1, int32_t x2, int32_t y2, double_t *inv_completion)
     {
         return DirectX::SimpleMath::Vector2(
             257.f + (x1 + ((x2 - x1) * static_cast<float_t>(std::clamp(*inv_completion, 0.0, 1.0)))) * 1.5f,
@@ -91,7 +91,7 @@ private:
     /**
         Gets Actual Screen coords from osupixel, this one is used for reading lines completion%
     */
-    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t &x1, int32_t &y1, int32_t &x2, int32_t &y2, float_t *inv_completion)
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x1, int32_t y1, int32_t x2, int32_t y2, float_t *inv_completion)
     {
         return DirectX::SimpleMath::Vector2(
             257.f + (x1 + ((x2 - x1) * std::clamp(*inv_completion, 0.f, 1.f))) * 1.5f,

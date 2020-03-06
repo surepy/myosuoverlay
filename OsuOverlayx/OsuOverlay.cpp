@@ -840,48 +840,84 @@ void Overlay::RenderAssistant(osuGame &gameStat)
         hitobject *next_object = gameStat.loadedMap.getNextHitObject();
         hitobject *upcoming_object = gameStat.loadedMap.getUpcomingHitObject();
 
-        if (false) // has hidden; disabled for now rewrite later: gameStat.hasMod(Mods::Hidden)
+        // for dumb aspire objects, upto 20.
+        for (std::int32_t i = gameStat.loadedMap.currentObjectIndex - 1; i > 0 && i >= (int32_t)gameStat.loadedMap.currentObjectIndex - 20; i--)
+        {
+            if (!gameStat.loadedMap.hitobjects.at(i).IsSlider())
+                continue;
+
+            if (gameStat.loadedMap.hitobjects.at(i).end_time > gameStat.osuMapTime)
+            {
+                Overlay::DrawSlider(gameStat.loadedMap.hitobjects.at(i), gameStat.osuMapTime, Colors::Green);
+            }
+        }
+
+        if (gameStat.hasMod(Mods::Hidden)) // has hidden;
         {
             std::uint32_t comboIndex = gameStat.loadedMap.newComboIndex;
             bool bContinue = true;
+            bool bNextContinue = true;
+            DirectX::SimpleMath::Vector2 last_start_vec;
 
-            for (std::uint32_t i = gameStat.loadedMap.currentObjectIndex + 1; i < gameStat.loadedMap.hitobjects.size() && bContinue; i++)
+            for (std::uint32_t i = gameStat.loadedMap.currentObjectIndex; i < gameStat.loadedMap.hitobjects.size() && bContinue; i++)
             {
                 //  Starts at 1
                 //textString = std::to_wstring(i - gameStat.currentMap.currentObjectIndex);
 
                 //  follows map combo
+                bContinue = gameStat.GetARDelay(gameStat.getAR_Real(gameStat.loadedMap.ApproachRate)) >= gameStat.loadedMap.hitobjects[i].start_time - gameStat.osuMapTime;
+                bNextContinue = (i + 1) < gameStat.loadedMap.hitobjects.size() &&
+                    gameStat.GetARDelay(gameStat.getAR_Real(gameStat.loadedMap.ApproachRate)) >= gameStat.loadedMap.hitobjects[i + 1].start_time - gameStat.osuMapTime;
 
-                bContinue = (gameStat.bOsuIngame ? 600 : 800) >= gameStat.loadedMap.hitobjects[i].start_time - gameStat.osuMapTime;
+                if (!bContinue)
+                    return;
 
                 comboIndex = gameStat.loadedMap.hitobjects[i].IsNewCombo() ? i : comboIndex;
 
                 textString = std::to_wstring(i - comboIndex + 1);
-
-                //std::to_wstring(gameStat.currentMap.hitobjects[i].start_time - gameStat.osuMapTime);
+                double time_percent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
 
                 //  first note
-                if (i == gameStat.loadedMap.currentObjectIndex + 1)
+                if (i == gameStat.loadedMap.currentObjectIndex)
                 {
-                    /*if (!gameStat.bOsuIngame)
-                    {
-                        textString = std::to_wstring(i - comboIndex);
-
-                        m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
-                            DirectX::SimpleMath::Vector2(
-                                2 + 257.f + (*current_object).x * 1.5f, // padding + pixel
-                                84.f + (*current_object).y * 1.5f
-                            ),
-                            Colors::LightBlue, 0.f, m_font->MeasureString(textString.c_str()) * 0.4f, 0.4f);
-                    }*/
-
-                    textString = L"> " + textString + L" <";
+                    textString = L">    <";
 
                     m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
-                        DirectX::SimpleMath::Vector2(
-                            2 + 257.f + (*next_object).x * 1.5f, // padding + pixel
-                            84.f + (*next_object).y * 1.5f
-                        ),
+                        GetScreenCoordFromOsuPixelStandard(*current_object),
+                        Colors::LightBlue, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
+
+                    last_start_vec = *current_object;
+
+                    if (current_object->IsSlider())
+                    {
+                        last_start_vec = DirectX::SimpleMath::Vector2(
+                            (current_object->repeat % 2) == 0 ? current_object->x : current_object->x_sliderend_real,
+                            (current_object->repeat % 2) == 0 ? current_object->y : current_object->y_sliderend_real
+                        );
+
+                        if (current_object->end_time > gameStat.osuMapTime)
+                            Overlay::DrawSlider(*current_object, gameStat.osuMapTime, Colors::LightBlue);
+                    }
+                    else if (current_object->IsSpinner() && current_object->end_time > gameStat.osuMapTime)
+                    {
+                        textString = Utilities::to_wstring_with_precision(gameStat.GetSecondsFromOsuTime(current_object->end_time - gameStat.osuMapTime), 1) + L"s";
+
+                        m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
+                            GetScreenCoordFromOsuPixelStandard(gameStat.loadedMap.getCurrentHitObject()),
+                            Colors::LightBlue, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
+
+                        textString = L">    <";
+                    }
+                }
+                else if (i == gameStat.loadedMap.currentObjectIndex + 1)
+                {
+                    if (((i - comboIndex + 1) > 9))
+                        textString = L"> " + textString + L" <";
+                    else
+                        textString = L">  " + textString + L" <";
+
+                    m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
+                        GetScreenCoordFromOsuPixelStandard(*next_object),
                         Colors::Yellow, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
 
                     m_font->DrawString(m_spriteBatch.get(), std::wstring(L" - " + std::to_wstring((*next_object).start_time - gameStat.osuMapTime)).c_str(),
@@ -890,6 +926,29 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                             84.f + (*next_object).y * 1.5f
                         ),
                         Colors::Yellow, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 0.35f);
+
+                    //  draw the slider.
+                    Overlay::DrawSlider(*next_object, gameStat.osuMapTime, Colors::Yellow);
+
+                    //  temp for aspire sliders
+                    if (current_object->end_time > next_object->start_time)
+                        gameStat.loadedMap.aspire_dumb_slider_hitobjects.push_back(*current_object);
+
+                    /*{
+                        if (current_object->IsSlider())
+                            time_percent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->end_time));
+
+                        m_batch->DrawLine(
+                            DirectX::VertexPositionColor(
+                                GetScreenCoordFromOsuPixelStandard((int32_t)last_start_vec.x, (int32_t)last_start_vec.y, next_object->x, next_object->y, &time_percent),
+                                DirectX::Colors::LightBlue
+                            ),
+                            DirectX::VertexPositionColor(
+                                GetScreenCoordFromOsuPixelStandard(next_object),
+                                DirectX::Colors::Yellow
+                            )
+                        );
+                    }*/
                 }
                 else
                 {
@@ -907,41 +966,8 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                         ),
                         Colors::White, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 0.35f);
 
-                    if ((std::sqrt(
-                        std::pow(
-                            gameStat.loadedMap.hitobjects[i - 1].x - gameStat.loadedMap.hitobjects[i].x, 2
-                        ) +
-                        std::pow(
-                            gameStat.loadedMap.hitobjects[i - 1].y - gameStat.loadedMap.hitobjects[i].y, 2
-                        )
-                    ) > 125.0f
-                        && gameStat.loadedMap.hitobjects[i - 2].IsCircle()) || !gameStat.bOsuIngame) // todo remove1
-                    {
-                        double diffx = gameStat.loadedMap.hitobjects[i - 1].x - gameStat.loadedMap.hitobjects[i - 2].x;
-                        double diffy = gameStat.loadedMap.hitobjects[i - 1].y - gameStat.loadedMap.hitobjects[i - 2].y;
-
-                        double time_p = ((double)(gameStat.osuMapTime - gameStat.loadedMap.hitobjects[i - 1].start_time) / (gameStat.loadedMap.hitobjects[i - 1].start_time - gameStat.loadedMap.hitobjects[i - 2].start_time));
-                        double time_persent = 1.0 + time_p;
-
-                        DirectX::SimpleMath::Vector2 v1 = DirectX::SimpleMath::Vector2(
-                            257.f + (gameStat.loadedMap.hitobjects[i - 2].x + (diffx * (time_persent >= 0.1 ? time_persent : 0.1))) * 1.5f,
-                            84.f + (gameStat.loadedMap.hitobjects[i - 2].y + (diffy * (time_persent >= 0.1 ? time_persent : 0.1))) * 1.5f
-                        );
-
-                        DirectX::SimpleMath::Vector2 v2 = DirectX::SimpleMath::Vector2(
-                            257.f + (gameStat.loadedMap.hitobjects[i - 1].x - (diffx * 0.1)) * 1.5f,
-                            84.f + (gameStat.loadedMap.hitobjects[i - 1].y - (diffy * 0.1)) * 1.5f
-                        );
-
-                        m_batch->DrawLine(
-                            DirectX::VertexPositionColor(
-                                v1, i == gameStat.loadedMap.currentObjectIndex + 2 ? DirectX::Colors::Yellow : i == gameStat.loadedMap.currentObjectIndex + 3 ? Colors::Aqua : DirectX::Colors::White
-                            ),
-                            DirectX::VertexPositionColor(
-                                v2, i == gameStat.loadedMap.currentObjectIndex + 2 ? DirectX::Colors::Yellow : i == gameStat.loadedMap.currentObjectIndex + 3 ? Colors::Aqua : DirectX::Colors::White
-                            )
-                        );
-                    }
+                    //  draw the slider.
+                    Overlay::DrawSlider(gameStat.loadedMap.hitobjects.at(i), gameStat.osuMapTime, Colors::White);
                 }
             }
         }
@@ -1020,7 +1046,7 @@ void Overlay::RenderAssistant(osuGame &gameStat)
             double distTotal = distCtoNObj + next_object->pixel_length;
             double distRate = distCtoNObj / distTotal;
             time_percent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
-            time_percent = time_percent * 2;
+            time_percent = time_percent * 1.5;
 
             if (next_object->IsSlider())
             {
@@ -1054,12 +1080,6 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                         DirectX::SimpleMath::Vector2(500, 500),
                         Colors::White, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.3);*/
                 }
-
-                /*if (!next_object->IsSlider())
-                {
-                    time_percent = 1.0 + ((double)(gameStat.osuMapTime - next_object->start_time) / (next_object->start_time - current_object->start_time));
-                    time_percent = time_percent * 2;
-                }*/
 
                 m_batch->DrawLine(
                     DirectX::VertexPositionColor(
