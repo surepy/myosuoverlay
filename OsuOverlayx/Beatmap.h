@@ -155,7 +155,7 @@ public:
     */
     hitobject* getCurrentHitObject() {
         try {
-            return &this->hitobjects[this->currentObjectIndex];
+            return &this->hitobjects[(size_t)this->currentObjectIndex];
         }
         catch (const std::out_of_range& e)
         {
@@ -166,7 +166,7 @@ public:
 
     hitobject* getNextHitObject() {
         try {
-            return &this->hitobjects.at(this->currentObjectIndex + 1);
+            return &this->hitobjects.at((size_t)this->currentObjectIndex + 1);
         }
         catch (const std::out_of_range& e)
         {
@@ -177,7 +177,7 @@ public:
 
     hitobject* getUpcomingHitObject() {
         try {
-            return &this->hitobjects.at(this->currentObjectIndex + 2);
+            return &this->hitobjects.at((size_t)this->currentObjectIndex + 2);
         }
         catch (const std::out_of_range& e)
         {
@@ -192,7 +192,7 @@ public:
     hitobject* getCurrentHitObject(int row)
     {
         try {
-            return &this->hitobjects_sorted[row][this->currentObjectIndex_sorted[row]];
+            return &this->hitobjects_sorted[row][(size_t)this->currentObjectIndex_sorted[row]];
         }
         catch (const std::out_of_range& e)
         {
@@ -204,7 +204,7 @@ public:
     hitobject* getNextHitObject(int row)
     {
         try {
-            return &this->hitobjects_sorted[row].at(this->currentObjectIndex_sorted[row] + 1);
+            return &this->hitobjects_sorted[row].at((size_t)this->currentObjectIndex_sorted[row] + 1);
         }
         catch (const std::out_of_range& e)
         {
@@ -216,7 +216,7 @@ public:
     hitobject* getUpcomingHitObject(int row)
     {
         try {
-            return &this->hitobjects_sorted[row].at(this->currentObjectIndex_sorted[row] + 2);
+            return &this->hitobjects_sorted[row].at((size_t)this->currentObjectIndex_sorted[row] + 2);
         }
         catch (const std::out_of_range& e)
         {
@@ -228,7 +228,7 @@ public:
     timingpoint* getCurrentTimingPoint()
     {
         try {
-            return &this->timingpoints.at(this->currentTimeIndex);
+            return &this->timingpoints.at((size_t)this->currentTimeIndex);
         }
         catch (const std::out_of_range& e)
         {

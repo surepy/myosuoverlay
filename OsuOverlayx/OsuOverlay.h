@@ -45,30 +45,86 @@ private:
 
     void DebugDrawSliderPoints(int x, int y, std::vector<slidercurve> &points, DirectX::XMVECTORF32 color = DirectX::Colors::White);
 
+    static constexpr float playfield_size[] = { 512.0f, 384.0f };
+
+    float x_multiplier, y_multiplier;
+    
+    float x_offset, y_offset;
+
+    // blatantly pasted from https://github.com/CookieHoodie/OsuBot/blob/master/OsuBots/OsuBot.cpp#L133
+    void CalculateScreenCoordOffsets()
+    {
+        float screenWidth = m_outputWidth;
+        float screenHeight = m_outputHeight;
+
+        // ????
+        if (screenWidth * 3 > screenHeight * 4) {
+            screenWidth = screenHeight * 4 / 3;
+        }
+        else {
+            screenHeight = screenWidth * 3 / 4;
+        }
+
+        x_multiplier = screenWidth / 640.f;
+        y_multiplier = screenHeight / 480.0f;
+
+        x_offset = 1.f + static_cast<int>(m_outputWidth - playfield_size[0] * x_multiplier) / 2;
+        y_offset = 8.0f * y_multiplier + static_cast<int>(m_outputHeight - playfield_size[1] * y_multiplier) / 2;
+    }
+
+    float x_multiplier_cursor, y_multiplier_cursor;
+
+    float x_offset_cursor, y_offset_cursor;
+
+    // pasted too, there's really not much i can do to uh not do this.
+    void CalculateScreenCoordOffsetsCursor()
+    {
+        // GetSystemMetrics(SM_CXSCREEN) and GetSystemMetrics(SM_CYSCREEN) is freaking out, hardcoded 1920x1080 for now.
+        // subtract 1 becasue getcursorpos can't get to 1920, stops at 1919
+        float screenWidth = 1920 - 1;
+        float screenHeight = 1080 - 1;
+
+        // ????
+        if (screenWidth * 3 > screenHeight * 4) {
+            screenWidth = screenHeight * 4 / 3;
+        }
+        else {
+            screenHeight = screenWidth * 3 / 4;
+        }
+
+        x_multiplier_cursor = screenWidth / 640.f;
+        y_multiplier_cursor = screenHeight / 480.0f;
+
+        x_offset_cursor = 1.f + static_cast<int>((1920 - 1) - playfield_size[0] * x_multiplier_cursor) / 2;
+        y_offset_cursor = 8.0f * y_multiplier_cursor + static_cast<int>((1080 - 1) - playfield_size[1] * y_multiplier_cursor) / 2;
+    }
+
+
+
     /**
         Gets Actual Screen coords from osupixel
     */
     DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x, int32_t y)
     {
         return DirectX::SimpleMath::Vector2(
-            257.f + (float)x * 1.5f,
-            84.f + (float)y * 1.5f
+            x_offset + (float)x * x_multiplier,
+            y_offset + (float)y * y_multiplier
         );
     }
 
     DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(DirectX::SimpleMath::Vector2 vec)
     {
         return DirectX::SimpleMath::Vector2(
-            257.f + vec.x * 1.5f,
-            84.f + vec.y * 1.5f
+            x_offset + vec.x * x_multiplier,
+            y_offset + vec.y * y_multiplier
         );
     }
 
     DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(double_t x, double_t y)
     {
         return DirectX::SimpleMath::Vector2(
-            257.f + (float)x * 1.5f,
-            84.f + (float)y * 1.5f
+            x_offset + (float)x * x_multiplier,
+            y_offset + (float)y * y_multiplier
         );
     }
 
@@ -83,8 +139,8 @@ private:
     DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x1, int32_t y1, int32_t x2, int32_t y2, double_t *inv_completion)
     {
         return DirectX::SimpleMath::Vector2(
-            257.f + (x1 + ((x2 - x1) * static_cast<float_t>(std::clamp(*inv_completion, 0.0, 1.0)))) * 1.5f,
-            84.f + (y1 + ((y2 - y1) * static_cast<float_t>(std::clamp(*inv_completion, 0.0, 1.0)))) * 1.5f
+            x_offset + (x1 + ((x2 - x1) * static_cast<float_t>(std::clamp(*inv_completion, 0.0, 1.0)))) * x_multiplier,
+            y_offset + (y1 + ((y2 - y1) * static_cast<float_t>(std::clamp(*inv_completion, 0.0, 1.0)))) * y_multiplier
         );
     }
 
@@ -94,8 +150,8 @@ private:
     DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x1, int32_t y1, int32_t x2, int32_t y2, float_t *inv_completion)
     {
         return DirectX::SimpleMath::Vector2(
-            257.f + (x1 + ((x2 - x1) * std::clamp(*inv_completion, 0.f, 1.f))) * 1.5f,
-            84.f + (y1 + ((y2 - y1) * std::clamp(*inv_completion, 0.f, 1.f))) * 1.5f
+            x_offset + (x1 + ((x2 - x1) * std::clamp(*inv_completion, 0.f, 1.f))) * x_multiplier,
+            y_offset + (y1 + ((y2 - y1) * std::clamp(*inv_completion, 0.f, 1.f))) * y_multiplier
         );
     }
 
@@ -179,4 +235,5 @@ private:
     Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
 
     std::wstring user;
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_raster;
 };

@@ -1,6 +1,8 @@
 #include "OsuOverlay.h"
 #include "OsuGame.h"
 
+#define FHD_MODE true
+
 // Global Variables:
 HINSTANCE hInst;                    // current instance
 WCHAR szWindowClass[100];           // the main window class name
@@ -106,7 +108,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     hInst = hInstance; // Store instance handle in our global variable
     g_game = std::make_unique<Overlay>();
 
+#if FHD_MODE
+    RECT wr = { 0, 0, 1600, 900 };    // set the size, but not the position
+#else
     RECT wr = { 0, 0, 1280, 720 };    // set the size, but not the position
+#endif
+
     AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);    // adjust the size
 
     HWND hWnd = CreateWindowW(szWindowClass,

@@ -4,6 +4,7 @@
 #include "Signatures.h"
 #include "Beatmap.h"
 #include <shlObj.h>
+#include <algorithm>
 
 // refactor again soon.
 
@@ -291,7 +292,6 @@ public:
     /*
         Refactor todo
     */
-    double cursorSpeed = 0;
     bool clickx = false, clicky = false;
     int clickCounter = 0;
     int beatIndex = 0;

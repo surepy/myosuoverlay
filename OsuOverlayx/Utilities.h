@@ -47,7 +47,7 @@ public:
             return std::wstring(L" ");
 
         wchar_t* buf = new wchar_t[(size_t)length];
-        ReadProcessMemory(hnd, LPCVOID(ptr + 8), buf, (size_t)(length * _WCHAR_T_SIZE), nullptr);
+        ReadProcessMemory(hnd, LPCVOID(ptr + 8), buf, (size_t)(length * sizeof(wchar_t)), nullptr);
         str = std::wstring(buf, length);
         delete[] buf;
 

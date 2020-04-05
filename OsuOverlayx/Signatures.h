@@ -2,7 +2,7 @@
 #include <Windows.h>
 #include "OsuGame.h"
 
-struct osuGame;
+class osuGame;
 
 //  note: https://github.com/Piotrekol/StreamCompanion/blob/171fab829d921aa9bae355904d8bb90c0eba0e47/plugins/OsuMemoryEventSource/MemoryListener.cs
 struct Signatures
