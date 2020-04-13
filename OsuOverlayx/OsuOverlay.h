@@ -43,7 +43,7 @@ private:
     DirectX::XMVECTOR RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &fontPos, DirectX::XMVECTORF32 tColor = DirectX::Colors::White, DirectX::XMVECTORF32 bgColor = DirectX::Colors::Black, int v = 1, float fontsize = 0.5f);
     void RenderAssistant(osuGame &gameStat);
 
-    void DebugDrawSliderPoints(int x, int y, std::vector<slidercurve> &points, DirectX::XMVECTORF32 color = DirectX::Colors::White);
+    void DebugDrawSliderPoints(int x, int y, std::vector<slidercurve>& points, DirectX::XMVECTORF32 color = DirectX::Colors::White, bool hardrock = false);
 
     static constexpr float playfield_size[] = { 512.0f, 384.0f };
 
@@ -99,69 +99,98 @@ private:
         y_offset_cursor = 8.0f * y_multiplier_cursor + static_cast<int>((1080 - 1) - playfield_size[1] * y_multiplier_cursor) / 2;
     }
 
-
-
     /**
         Gets Actual Screen coords from osupixel
     */
-    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x, int32_t y)
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x, int32_t y, bool hardrock = false)
     {
+        if (hardrock)
+        {
+            y = 384 - y;
+        }
+
         return DirectX::SimpleMath::Vector2(
             x_offset + (float)x * x_multiplier,
             y_offset + (float)y * y_multiplier
         );
     }
 
-    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(DirectX::SimpleMath::Vector2 vec)
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(DirectX::SimpleMath::Vector2 vec, bool hardrock = false)
     {
+        int y = vec.y; 
+
+        if (hardrock)
+        {
+            y = 384 - y;
+        }
+
         return DirectX::SimpleMath::Vector2(
             x_offset + vec.x * x_multiplier,
-            y_offset + vec.y * y_multiplier
+            y_offset + y * y_multiplier
         );
     }
 
-    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(double_t x, double_t y)
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(double_t x, double_t y, bool hardrock = false)
     {
+        if (hardrock)
+        {
+            y = 384 - y;
+        }
+
         return DirectX::SimpleMath::Vector2(
             x_offset + (float)x * x_multiplier,
             y_offset + (float)y * y_multiplier
         );
     }
 
-    inline DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(hitobject *obj)
+    inline DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(hitobject *obj, bool hardrock = false)
     {
-        return GetScreenCoordFromOsuPixelStandard(obj->x, obj->y);
+        return GetScreenCoordFromOsuPixelStandard(obj->x, obj->y, hardrock);
     }
 
     /**
         Gets Actual Screen coords from osupixel, this one is used for reading lines completion%
     */
-    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x1, int32_t y1, int32_t x2, int32_t y2, double_t *inv_completion)
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x1, int32_t y1, int32_t x2, int32_t y2, double_t *inv_completion, bool hardrock = false)
     {
+        int y = (y1 + ((y2 - y1) * static_cast<float_t>(std::clamp(*inv_completion, 0.0, 1.0))));
+
+        if (hardrock)
+        {
+            y = 384 - y;
+        }
+
         return DirectX::SimpleMath::Vector2(
             x_offset + (x1 + ((x2 - x1) * static_cast<float_t>(std::clamp(*inv_completion, 0.0, 1.0)))) * x_multiplier,
-            y_offset + (y1 + ((y2 - y1) * static_cast<float_t>(std::clamp(*inv_completion, 0.0, 1.0)))) * y_multiplier
+            y_offset + y * y_multiplier
         );
     }
 
     /**
         Gets Actual Screen coords from osupixel, this one is used for reading lines completion%
     */
-    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x1, int32_t y1, int32_t x2, int32_t y2, float_t *inv_completion)
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x1, int32_t y1, int32_t x2, int32_t y2, float_t *inv_completion, bool hardrock = false)
     {
+        int y = (y1 + ((y2 - y1) * std::clamp(*inv_completion, 0.f, 1.f)));
+
+        if (hardrock)
+        {
+            y = 384 - y;
+        }
+
         return DirectX::SimpleMath::Vector2(
             x_offset + (x1 + ((x2 - x1) * std::clamp(*inv_completion, 0.f, 1.f))) * x_multiplier,
-            y_offset + (y1 + ((y2 - y1) * std::clamp(*inv_completion, 0.f, 1.f))) * y_multiplier
+            y_offset + y * y_multiplier
         );
     }
 
-    void DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 color, bool reverse = false, float_t reverse_completion = 0.f, bool* render_complete = nullptr);
+    void DrawSlider(hitobject& object, int32_t& time, DirectX::XMVECTORF32 color, bool hardrock = false, bool reverse = false, float_t reverse_completion = 0.f, bool* render_complete = nullptr);
 
-    inline void DrawSliderLinear(slidercurve init_point, slidercurve &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t completion = 0.f, bool reverse = false, DirectX::SimpleMath::Vector2 *vec = nullptr);
+    inline void DrawSliderLinear(slidercurve init_point, slidercurve &curves, double &dist_left, DirectX::XMVECTORF32 color, bool hardrock = false, float_t completion = 0.f, bool reverse = false, DirectX::SimpleMath::Vector2 *vec = nullptr);
 
-    void DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t completion = 0.f, bool reverse = false, DirectX::SimpleMath::Vector2 *vec = nullptr);
+    void DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, bool hardrock = false, float_t completion = 0.f, bool reverse = false, DirectX::SimpleMath::Vector2 *vec = nullptr);
 
-    void DrawSliderPerfectCircle(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t completion = 0.f, bool reverse = false, DirectX::SimpleMath::Vector2 *vec = nullptr);
+    void DrawSliderPerfectCircle(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, bool hardrock = false, float_t completion = 0.f, bool reverse = false, DirectX::SimpleMath::Vector2 *vec = nullptr);
 
     void DrawCircleIWantToKillMyself(int32_t radius = 200)
     {

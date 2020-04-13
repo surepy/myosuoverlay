@@ -325,8 +325,10 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
 
         if (current_object != nullptr && gameStat.osuMapTime < gameStat.loadedMap.hitobjects[gameStat.loadedMap.hitobjects.size() - 1].end_time)
         {
+
+
             textString = std::wstring(L"current: x: ") + std::to_wstring(current_object->x) +
-                std::wstring(L" y: ") + std::to_wstring(current_object->y) +
+                std::wstring(L" y: ") + std::to_wstring(gameStat.hasMod(Mods::HardRock) ? 384 - current_object->y : current_object->y) +
                 std::wstring(L" index: ") + std::to_wstring(gameStat.loadedMap.currentObjectIndex) + std::wstring(L"/") + std::to_wstring(gameStat.loadedMap.hitobjects.size()) +
                 std::wstring(L" time: ") + std::to_wstring(current_object->start_time);
 
@@ -361,8 +363,8 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
         if (next_object != nullptr)
         {
             textString = L"subseq: x: " + std::to_wstring(next_object->x) +
-                L" y: " + std::to_wstring(next_object->y) +
-                L"  dist: " +
+                L" y: " + std::to_wstring(gameStat.hasMod(Mods::HardRock) ? 384 - next_object->y : next_object->y) +
+                L"  objdist: " +
                 Utilities::to_wstring_with_precision(
                     DirectX::SimpleMath::Vector2::Distance(*next_object, *current_object), 1
                 ) +
@@ -385,8 +387,8 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
         if (upcoming_object != nullptr)
         {
             textString = std::wstring(L"follow: x: ") + std::to_wstring(upcoming_object->x) +
-                std::wstring(L" y: ") + std::to_wstring(upcoming_object->y) +
-                std::wstring(L"  dist: ") + Utilities::to_wstring_with_precision(
+                std::wstring(L" y: ") + std::to_wstring(gameStat.hasMod(Mods::HardRock) ? 384 - upcoming_object->y : upcoming_object->y) +
+                std::wstring(L"  objdist: ") + Utilities::to_wstring_with_precision(
                     DirectX::SimpleMath::Vector2::Distance(*upcoming_object, *next_object), 1
                 ) +
                 std::wstring(L" time left: ") + std::to_wstring(static_cast<int>(gameStat.GetSecondsFromOsuTime(upcoming_object->start_time - gameStat.osuMapTime) * 1000)) + L"ms";
@@ -511,7 +513,7 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
 
             if (gameStat.hasMod(Mods::HardRock))
             {
-                m_font->DrawString(m_spriteBatch.get(), L"Incorrect Information notice: Hardrock not Supported!",
+                m_font->DrawString(m_spriteBatch.get(), L"Incorrect Information notice: Hardrock not really Supported!",
                     m_fontPos, Colors::White, 0.f, origin, 0.4f);
 
                 m_fontPos.y += XMVectorGetY(m_font->MeasureString(textString.c_str())) * fontsize_multiplier;
@@ -831,10 +833,6 @@ void Overlay::RenderAssistant(osuGame &gameStat)
     if (!gameStat.bOsuIngame)
         return;
 
-    // not yet
-    if (gameStat.hasMod(Mods::HardRock))
-        return;
-
     std::wstring textString;
 
     switch (gameStat.gameMode)
@@ -852,7 +850,7 @@ void Overlay::RenderAssistant(osuGame &gameStat)
 
             if (gameStat.loadedMap.hitobjects.at(i).end_time > gameStat.osuMapTime)
             {
-                Overlay::DrawSlider(gameStat.loadedMap.hitobjects.at(i), gameStat.osuMapTime, Colors::Green);
+                Overlay::DrawSlider(gameStat.loadedMap.hitobjects.at(i), gameStat.osuMapTime, Colors::Green, gameStat.hasMod(Mods::HardRock));
             }
         }
 
@@ -887,7 +885,7 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                     textString = L">    <";
 
                     m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
-                        GetScreenCoordFromOsuPixelStandard(*current_object),
+                        GetScreenCoordFromOsuPixelStandard(current_object, gameStat.hasMod(Mods::HardRock)),
                         Colors::LightBlue, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
 
                     last_start_vec = *current_object;
@@ -900,14 +898,14 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                         );
 
                         if (current_object->end_time > gameStat.osuMapTime)
-                            Overlay::DrawSlider(*current_object, gameStat.osuMapTime, Colors::LightBlue);
+                            Overlay::DrawSlider(*current_object, gameStat.osuMapTime, Colors::LightBlue, gameStat.hasMod(Mods::HardRock));
                     }
                     else if (current_object->IsSpinner() && current_object->end_time > gameStat.osuMapTime)
                     {
                         textString = Utilities::to_wstring_with_precision(gameStat.GetSecondsFromOsuTime(current_object->end_time - gameStat.osuMapTime), 1) + L"s";
 
                         m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
-                            GetScreenCoordFromOsuPixelStandard(gameStat.loadedMap.getCurrentHitObject()),
+                            GetScreenCoordFromOsuPixelStandard(current_object, gameStat.hasMod(Mods::HardRock)),
                             Colors::LightBlue, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
 
                         textString = L">    <";
@@ -921,7 +919,7 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                         textString = L">  " + textString + L" <";
 
                     m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
-                        GetScreenCoordFromOsuPixelStandard(*next_object),
+                        GetScreenCoordFromOsuPixelStandard(*next_object, gameStat.hasMod(Mods::HardRock)),
                         Colors::Yellow, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
 
                     if (upcoming_object != nullptr && DirectX::SimpleMath::Vector2::Distance(*next_object, *upcoming_object) < 1.f)
@@ -936,14 +934,14 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                         }
 
                         m_font->DrawString(m_spriteBatch.get(), std::wstring(L" - " + std::to_wstring((*next_object).start_time - gameStat.osuMapTime) + L" x" + std::to_wstring(repeat_count)).c_str(),
-                            GetScreenCoordFromOsuPixelStandard(*next_object) +
+                            GetScreenCoordFromOsuPixelStandard(*next_object, gameStat.hasMod(Mods::HardRock)) +
                             DirectX::SimpleMath::Vector2((XMVectorGetX(m_font->MeasureString(textString.c_str())) * 0.3f), 0),
                             Colors::Yellow, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 0.35f);
                     }
                     else 
                     {
                         m_font->DrawString(m_spriteBatch.get(), std::wstring(L" - " + std::to_wstring((*next_object).start_time - gameStat.osuMapTime)).c_str(),
-                            GetScreenCoordFromOsuPixelStandard(*next_object) +
+                            GetScreenCoordFromOsuPixelStandard(*next_object, gameStat.hasMod(Mods::HardRock)) +
                             DirectX::SimpleMath::Vector2((XMVectorGetX(m_font->MeasureString(textString.c_str())) * 0.3f), 0),
                             Colors::Yellow, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 0.35f);
                     }
@@ -954,7 +952,7 @@ void Overlay::RenderAssistant(osuGame &gameStat)
 
 
                     //  draw the slider.
-                    Overlay::DrawSlider(*next_object, gameStat.osuMapTime, Colors::Yellow);
+                    Overlay::DrawSlider(*next_object, gameStat.osuMapTime, Colors::Yellow, gameStat.hasMod(Mods::HardRock));
 
                     //  temp for aspire sliders
                     if (current_object->end_time > next_object->start_time)
@@ -981,17 +979,17 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                     if (DirectX::SimpleMath::Vector2::Distance(gameStat.loadedMap.hitobjects[i - 1], gameStat.loadedMap.hitobjects[i]) > 1.f)
                     {
                         m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
-                            GetScreenCoordFromOsuPixelStandard(gameStat.loadedMap.hitobjects[i]),
+                            GetScreenCoordFromOsuPixelStandard(gameStat.loadedMap.hitobjects[i], gameStat.hasMod(Mods::HardRock)),
                             Colors::White, 0.f, m_font->MeasureString(textString.c_str()) * 0.5f, 0.5f);
 
                         m_font->DrawString(m_spriteBatch.get(), std::wstring(L" - " + std::to_wstring(gameStat.loadedMap.hitobjects[i].start_time - gameStat.osuMapTime)).c_str(),
-                            GetScreenCoordFromOsuPixelStandard(gameStat.loadedMap.hitobjects[i]) +
+                            GetScreenCoordFromOsuPixelStandard(gameStat.loadedMap.hitobjects[i], gameStat.hasMod(Mods::HardRock)) +
                             DirectX::SimpleMath::Vector2((XMVectorGetX(m_font->MeasureString(textString.c_str())) * 0.3f), 0),
                             Colors::White, 0.f, DirectX::SimpleMath::Vector2(0.f, 0.f), 0.35f);
                     }
 
                     //  draw the slider.
-                    Overlay::DrawSlider(gameStat.loadedMap.hitobjects.at(i), gameStat.osuMapTime, Colors::White);
+                    Overlay::DrawSlider(gameStat.loadedMap.hitobjects.at(i), gameStat.osuMapTime, Colors::White, gameStat.hasMod(Mods::HardRock));
                 }
             }
         }
@@ -1006,7 +1004,7 @@ void Overlay::RenderAssistant(osuGame &gameStat)
             */
 
             m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
-                GetScreenCoordFromOsuPixelStandard(gameStat.loadedMap.getCurrentHitObject()),
+                GetScreenCoordFromOsuPixelStandard(gameStat.loadedMap.getCurrentHitObject(), gameStat.hasMod(Mods::HardRock)),
                 Colors::LightBlue, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
 
             /*
@@ -1015,14 +1013,14 @@ void Overlay::RenderAssistant(osuGame &gameStat)
 
             if (current_object->IsSlider() && current_object->end_time > gameStat.osuMapTime)
             {
-                Overlay::DrawSlider(*current_object, gameStat.osuMapTime, Colors::LightBlue);
+                Overlay::DrawSlider(*current_object, gameStat.osuMapTime, Colors::LightBlue, gameStat.hasMod(Mods::HardRock));
             }
             else if (current_object->IsSpinner() && current_object->end_time > gameStat.osuMapTime)
             {
                 textString = Utilities::to_wstring_with_precision(gameStat.GetSecondsFromOsuTime(current_object->end_time - gameStat.osuMapTime), 1) + L"s";
 
                 m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
-                    GetScreenCoordFromOsuPixelStandard(gameStat.loadedMap.getCurrentHitObject()),
+                    GetScreenCoordFromOsuPixelStandard(gameStat.loadedMap.getCurrentHitObject(), gameStat.hasMod(Mods::HardRock)),
                     Colors::LightBlue, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
 
                 textString = L">    <";
@@ -1035,7 +1033,7 @@ void Overlay::RenderAssistant(osuGame &gameStat)
 
             // draw next object.
             m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
-                GetScreenCoordFromOsuPixelStandard(next_object),
+                GetScreenCoordFromOsuPixelStandard(next_object, gameStat.hasMod(Mods::HardRock)),
                 Colors::Yellow, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
             //
 
@@ -1055,11 +1053,11 @@ void Overlay::RenderAssistant(osuGame &gameStat)
             // draw current object -> next object line.
             m_batch->DrawLine(
                 DirectX::VertexPositionColor(
-                    GetScreenCoordFromOsuPixelStandard(start_x, start_y, next_object->x, next_object->y, &time_percent),
+                    GetScreenCoordFromOsuPixelStandard(start_x, start_y, next_object->x, next_object->y, &time_percent, gameStat.hasMod(Mods::HardRock)),
                     DirectX::Colors::LightBlue
                 ),
                 DirectX::VertexPositionColor(
-                    GetScreenCoordFromOsuPixelStandard(next_object),
+                    GetScreenCoordFromOsuPixelStandard(next_object, gameStat.hasMod(Mods::HardRock)),
                     DirectX::Colors::Yellow
                 )
             );
@@ -1077,13 +1075,13 @@ void Overlay::RenderAssistant(osuGame &gameStat)
 
             if (next_object->IsSlider())
             {
-                Overlay::DrawSlider(*next_object, gameStat.osuMapTime, Colors::Yellow, true, time_percent / distRate, &prev_slider_rev_rend_done);
+                Overlay::DrawSlider(*next_object, gameStat.osuMapTime, Colors::Yellow, gameStat.hasMod(Mods::HardRock), true, time_percent / distRate, &prev_slider_rev_rend_done);
             }
 
             if (upcoming_object != nullptr)
             {
                 m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
-                    GetScreenCoordFromOsuPixelStandard(upcoming_object),
+                    GetScreenCoordFromOsuPixelStandard(upcoming_object, gameStat.hasMod(Mods::HardRock)),
                     Colors::Aqua, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
 
                 int32_t start_x = next_object->x, start_y = next_object->y;
@@ -1104,11 +1102,11 @@ void Overlay::RenderAssistant(osuGame &gameStat)
 
                 m_batch->DrawLine(
                     DirectX::VertexPositionColor(
-                        GetScreenCoordFromOsuPixelStandard(start_x, start_y),
+                        GetScreenCoordFromOsuPixelStandard(start_x, start_y, gameStat.hasMod(Mods::HardRock)),
                         DirectX::Colors::Yellow
                     ),
                     DirectX::VertexPositionColor(
-                        GetScreenCoordFromOsuPixelStandard(start_x, start_y, upcoming_object->x, upcoming_object->y, &time_percent),
+                        GetScreenCoordFromOsuPixelStandard(start_x, start_y, upcoming_object->x, upcoming_object->y, &time_percent, gameStat.hasMod(Mods::HardRock)),
                         DirectX::Colors::Aqua
                     )
                 );
@@ -1198,7 +1196,7 @@ void Overlay::RenderAssistant(osuGame &gameStat)
     }
     }
 
-void Overlay::DebugDrawSliderPoints(int x, int y, std::vector<slidercurve> &points, DirectX::XMVECTORF32 color)
+void Overlay::DebugDrawSliderPoints(int x, int y, std::vector<slidercurve> &points, DirectX::XMVECTORF32 color, bool hardrock)
 {
     int x1 = x, y1 = y, x2, y2, num = 0;
 
@@ -1215,15 +1213,15 @@ void Overlay::DebugDrawSliderPoints(int x, int y, std::vector<slidercurve> &poin
 
         m_batch->DrawLine(
             DirectX::VertexPositionColor(
-                GetScreenCoordFromOsuPixelStandard(x1, y1), color
+                GetScreenCoordFromOsuPixelStandard(x1, y1, hardrock), color
             ),
             DirectX::VertexPositionColor(
-                GetScreenCoordFromOsuPixelStandard(x2, y2), color
+                GetScreenCoordFromOsuPixelStandard(x2, y2, hardrock), color
             )
         );
 
         m_font->DrawString(m_spriteBatch.get(), std::to_wstring(num).c_str(),
-            GetScreenCoordFromOsuPixelStandard(x2, y2),
+            GetScreenCoordFromOsuPixelStandard(x2, y2, hardrock),
             color, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.3);
 
         num++;
@@ -1233,7 +1231,7 @@ void Overlay::DebugDrawSliderPoints(int x, int y, std::vector<slidercurve> &poin
     }
 }
 
-void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 color, bool reverse, float_t reverse_completion, bool* rev_render_complete)
+void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 color, bool hardrock, bool reverse, float_t reverse_completion, bool* rev_render_complete)
 {
     if (!object.IsSlider())
         return;
@@ -1263,7 +1261,7 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
 
     if (object.slidertype == L"B")
     {
-        DrawSliderPartBiezer(init_curve, object.slidercurves, length_left, color, completion_end_actual, object.repeat % 2 == 0 || reverse, &end_point);
+        DrawSliderPartBiezer(init_curve, object.slidercurves, length_left, color, hardrock, completion_end_actual, object.repeat % 2 == 0 || reverse, &end_point);
     }
     else if (object.slidertype == L"L")
     {
@@ -1271,13 +1269,13 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
 
         for (int i = 0; i < object.slidercurves.size(); i++)
         {
-            DrawSliderLinear(first_curve, object.slidercurves.at(i), length_left, color, completion_end_actual, object.repeat % 2 == 0 || reverse, &end_point);
+            DrawSliderLinear(first_curve, object.slidercurves.at(i), length_left, color, hardrock, completion_end_actual, object.repeat % 2 == 0 || reverse, &end_point);
             first_curve = object.slidercurves.at(i);
         }
     }
     else if (object.slidertype == L"P")
     {
-        DrawSliderPerfectCircle(init_curve, object.slidercurves, length_left, color, completion_end_actual, object.repeat % 2 == 0 || reverse, &end_point);
+        DrawSliderPerfectCircle(init_curve, object.slidercurves, length_left, color, hardrock, completion_end_actual, object.repeat % 2 == 0 || reverse, &end_point);
     }
     // is this even correct? not that it matters.. (C-type isn't used much)
     else if (object.slidertype == L"C")
@@ -1294,7 +1292,7 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
                         static_cast<DirectX::SimpleMath::Vector2>(object.slidercurves.at(1)),
                         static_cast<DirectX::SimpleMath::Vector2>(object.slidercurves.at(2)),
                         t
-                    )
+                    ), hardrock
                 ), color
             ));
         }
@@ -1329,14 +1327,14 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
 #else
     if (slider_left > 0)
         m_font->DrawString(m_spriteBatch.get(), (std::to_wstring(slider_left) + (slider_left % 2 == 1 ? L" inv" : L" str")).c_str(),
-            GetScreenCoordFromOsuPixelStandard(object.x_sliderend_real, object.y_sliderend_real),
+            GetScreenCoordFromOsuPixelStandard(object.x_sliderend_real, object.y_sliderend_real, hardrock),
             color, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.5);
 #endif
 
     return;
 }
 
-inline void Overlay::DrawSliderPerfectCircle(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t completion, bool reverse, DirectX::SimpleMath::Vector2 *vec)
+inline void Overlay::DrawSliderPerfectCircle(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, bool hardrock, float_t completion, bool reverse, DirectX::SimpleMath::Vector2 *vec)
 {
     // https://github.com/ppy/osu/blob/a8579c49f9327b0a4a8278a76167e081d14ea516/osu.Game/Rulesets/Objects/CircularArcApproximator.cs
     // copy-paste modification
@@ -1407,7 +1405,7 @@ inline void Overlay::DrawSliderPerfectCircle(slidercurve init_point, std::vector
         double theta = thetaStart + dir * fract * thetaRange;
         DirectX::SimpleMath::Vector2 o = DirectX::SimpleMath::Vector2((float)std::cos(theta), (float)std::sin(theta)) * r;
         output.push_back(DirectX::VertexPositionColor(
-            GetScreenCoordFromOsuPixelStandard(centre + o),
+            GetScreenCoordFromOsuPixelStandard(centre + o, hardrock),
             color
         ));
     }
@@ -1438,7 +1436,7 @@ inline void Overlay::DrawSliderPerfectCircle(slidercurve init_point, std::vector
 /**
 
 */
-inline void Overlay::DrawSliderLinear(slidercurve init_point, slidercurve &curve, double &dist_left, DirectX::XMVECTORF32 color, float_t inv_completion, bool reverse, DirectX::SimpleMath::Vector2 *vec)
+inline void Overlay::DrawSliderLinear(slidercurve init_point, slidercurve &curve, double &dist_left, DirectX::XMVECTORF32 color, bool hardrock, float_t inv_completion, bool reverse, DirectX::SimpleMath::Vector2 *vec)
 {
     if (dist_left < 0.0)
         return;
@@ -1450,10 +1448,10 @@ inline void Overlay::DrawSliderLinear(slidercurve init_point, slidercurve &curve
 
     m_batch->DrawLine(
         DirectX::VertexPositionColor(
-            GetScreenCoordFromOsuPixelStandard(init_pt + ((vec_final - init_pt) * (reverse ? 0.f : inv_completion))), color
+            GetScreenCoordFromOsuPixelStandard(init_pt + ((vec_final - init_pt) * (reverse ? 0.f : inv_completion)), hardrock), color
         ),
         DirectX::VertexPositionColor(
-            GetScreenCoordFromOsuPixelStandard(vec_final + ((init_pt - vec_final) * (reverse ? inv_completion : 0.f))), color
+            GetScreenCoordFromOsuPixelStandard(vec_final + ((init_pt - vec_final) * (reverse ? inv_completion : 0.f)), hardrock), color
         )
     );
 
@@ -1461,7 +1459,7 @@ inline void Overlay::DrawSliderLinear(slidercurve init_point, slidercurve &curve
     dist_left -= DirectX::SimpleMath::Vector2::Distance(init_pt, curve_pt);
 }
 
-void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, float_t completion, bool reverse, DirectX::SimpleMath::Vector2 *vec)
+void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, bool hardrock, float_t completion, bool reverse, DirectX::SimpleMath::Vector2 *vec)
 {
     //if (dist_left < 0.0)
     //    return;
@@ -1495,7 +1493,7 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
                 prev_point = DirectX::SimpleMath::Vector2(x, y);
 
                 lines.push_back(DirectX::VertexPositionColor(
-                    GetScreenCoordFromOsuPixelStandard(x, y),
+                    GetScreenCoordFromOsuPixelStandard(x, y, hardrock),
                     color
                 ));
             }
@@ -1521,7 +1519,7 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
         prev_point = DirectX::SimpleMath::Vector2(x, y);
 
         lines.push_back(DirectX::VertexPositionColor(
-            GetScreenCoordFromOsuPixelStandard(x, y),
+            GetScreenCoordFromOsuPixelStandard(x, y, hardrock),
             color
         ));
     }
@@ -1530,7 +1528,7 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
     if (lines.back().position.x != Utilities::getBezierPoint(&x_p, 1.0) && lines.back().position.y != Utilities::getBezierPoint(&y_p, 1.0))
     {
         lines.push_back(DirectX::VertexPositionColor(
-            GetScreenCoordFromOsuPixelStandard(Utilities::getBezierPoint(&x_p, 1.0), Utilities::getBezierPoint(&y_p, 1.0)),
+            GetScreenCoordFromOsuPixelStandard(Utilities::getBezierPoint(&x_p, 1.0), Utilities::getBezierPoint(&y_p, 1.0), hardrock),
             color
         ));
     }
