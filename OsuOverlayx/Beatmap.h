@@ -39,9 +39,15 @@ struct hitobject {
     uint8_t type;
     int32_t x;
     int32_t y;
+    int32_t x_sliderend_real;
+    int32_t y_sliderend_real;
+    std::vector<slidercurve> slidercurves;
+    //std::vector<slidercurve> slidercurves_calculated;
+    std::wstring slidertype;
+
     int32_t start_time;
     int32_t end_time;
-    // more like slides - repeat  + 1 but ok
+    // more like slides - repeat + 1 but ok
     uint32_t repeat;
     uint32_t pixel_length;
 
@@ -74,12 +80,6 @@ struct hitobject {
     operator DirectX::SimpleMath::Vector2() const {
         return DirectX::SimpleMath::Vector2(x, y);
     }
-
-    std::vector<slidercurve> slidercurves;
-    std::wstring slidertype;
-
-    int32_t x_sliderend_real;
-    int32_t y_sliderend_real;
 };
 
 struct timingpoint {

@@ -206,9 +206,7 @@ public:
     PlayMode gameMode = PlayMode::STANDARD;
     bool bOsuIngame = false;
 
-    /*
-        Beatmap data
-     */
+    // Beatmap data
     int MemoryBeatMapID = 0;
     int MemoryBeatMapSetID = 0;
     std::wstring MemoryMapString;
@@ -257,15 +255,6 @@ public:
         {
             ar_multiplier *= 0.5;
         }
-
-        /*if (hasMod(Mods::DoubleTime) || hasMod(Mods::Nightcore))
-        {
-            return (AR * ar_multiplier * 2 + 13) / 3;
-        }
-        else if (hasMod(Mods::HalfTime))
-        {
-            ar_multiplier *= 0.75;
-        }*/
 
         return AR * ar_multiplier;
     }

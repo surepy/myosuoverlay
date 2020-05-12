@@ -108,6 +108,7 @@ void Overlay::Update(DX::StepTimer const& timer)
 }
 
 // Draws the scene.
+// Never allow me to write UI code
 void Overlay::Render(osuGame &gameStat)
 {
     // Don't try to render anything before the first Update.
@@ -1319,7 +1320,7 @@ void Overlay::DrawSlider(hitobject &object, int32_t &time, DirectX::XMVECTORF32 
         std::to_wstring(completion_end_actual) + L" " +
         std::to_wstring(object.x_sliderend_real) + L" " +
         std::to_wstring(object.y_sliderend_real) + L" " + (reverse ? L"r:True" : L"r:False") + L" " + (rev_render_complete != nullptr && *rev_render_complete ? L"c:True" : L"c:False") + L" " +
-        std::to_wstring(slider_left)
+        std::to_wstring(slider_left) + L" left: " + std::to_wstring(length_left)
         ).c_str(),
         GetScreenCoordFromOsuPixelStandard(&object),
         color, 0.f, DirectX::SimpleMath::Vector2(0, 0), 0.3);
@@ -1398,12 +1399,23 @@ inline void Overlay::DrawSliderPerfectCircle(slidercurve init_point, std::vector
     int amountPoints = 2 * r <= tolerance ? 2 : std::max(2, (int)std::ceil(thetaRange / (2 * std::acos(1 - tolerance / r))));
 
     std::vector<DirectX::VertexPositionColor> output;
+    DirectX::SimpleMath::Vector2 last_point = curves.back();
 
     for (int i = 0; i < amountPoints; ++i)
     {
         double fract = (double)i / (amountPoints - 1);
         double theta = thetaStart + dir * fract * thetaRange;
         DirectX::SimpleMath::Vector2 o = DirectX::SimpleMath::Vector2((float)std::cos(theta), (float)std::sin(theta)) * r;
+
+        // calculate total arch length, if overshoot. stop.
+        if (std::abs((dir * fract * thetaRange) * r) >= dist_left)
+        {
+            dist_left -= std::abs((dir * fract * thetaRange) * r);
+            break;
+        }
+
+        last_point = centre + o;
+            
         output.push_back(DirectX::VertexPositionColor(
             GetScreenCoordFromOsuPixelStandard(centre + o, hardrock),
             color
@@ -1430,7 +1442,7 @@ inline void Overlay::DrawSliderPerfectCircle(slidercurve init_point, std::vector
         );
     }
 
-    *vec = static_cast<DirectX::SimpleMath::Vector2>(curves.back());
+    *vec = static_cast<DirectX::SimpleMath::Vector2>(last_point);
 }
 
 /**
@@ -1461,13 +1473,15 @@ inline void Overlay::DrawSliderLinear(slidercurve init_point, slidercurve &curve
 
 void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, bool hardrock, float_t completion, bool reverse, DirectX::SimpleMath::Vector2 *vec)
 {
-    //if (dist_left < 0.0)
-    //    return;
-
     int size = curves.size();
     std::vector<int> x_p, y_p;
     double x, y;
+
+    //  segment size (pixels) btw
+    double segment_length = 20;
     std::vector<DirectX::VertexPositionColor> lines;
+    std::vector<DirectX::SimpleMath::Vector2> vecs;
+    std::vector<double> arcLengths;
     x_p.push_back(init_point.x);
     y_p.push_back(init_point.y);
     DirectX::SimpleMath::Vector2 prev_point;
@@ -1480,6 +1494,8 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
         if (i + 1 < curves.size() && curves.at(i) == curves.at(i + 1))
         {
             prev_point = DirectX::SimpleMath::Vector2(x_p.front(), y_p.front());
+
+            //  https://gamedev.stackexchange.com/questions/5373/moving-ships-between-two-planets-along-a-bezier-missing-some-equations-for-acce/5427#5427
             for (double t = 0; t <= 1; t += 0.01)
             {
                 x = Utilities::getBezierPoint(&x_p, t);
@@ -1490,13 +1506,22 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
                     continue;
                 }
 
+                dist_left -= DirectX::SimpleMath::Vector2::Distance(prev_point, DirectX::SimpleMath::Vector2(x, y));
+
+                if (dist_left < 0)
+                    break;
+
                 prev_point = DirectX::SimpleMath::Vector2(x, y);
+
+                vecs.push_back(GetScreenCoordFromOsuPixelStandard(x, y, hardrock));
 
                 lines.push_back(DirectX::VertexPositionColor(
                     GetScreenCoordFromOsuPixelStandard(x, y, hardrock),
                     color
                 ));
+                
             }
+
             x_p.clear();
             y_p.clear();
         }
@@ -1515,6 +1540,11 @@ void Overlay::DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercur
         {
             continue;
         }
+
+        dist_left -= DirectX::SimpleMath::Vector2::Distance(prev_point, DirectX::SimpleMath::Vector2(x, y));
+
+        if (dist_left < 0)
+            break;
 
         prev_point = DirectX::SimpleMath::Vector2(x, y);
 

@@ -135,7 +135,7 @@ public:
     }
 
     // pasted
-// https://github.com/ppy/osu/blob/3391e21fc48a9f3a4e2505649ce7a235c250a909/osu.Game/Rulesets/Objects/SliderPath.cs#L231
+    // https://github.com/ppy/osu/blob/3391e21fc48a9f3a4e2505649ce7a235c250a909/osu.Game/Rulesets/Objects/SliderPath.cs#L231
     static double osu_Game_Rulesets_Objects_SliderPath_calculateLength(std::vector<DirectX::SimpleMath::Vector2> calculatedPath, double pixel_length)
     {
         std::vector<double> cumulativeLength;
