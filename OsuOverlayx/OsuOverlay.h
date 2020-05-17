@@ -186,11 +186,15 @@ private:
 
     void DrawSlider(hitobject& object, int32_t& time, DirectX::XMVECTORF32 color, bool hardrock = false, bool reverse = false, float_t reverse_completion = 0.f, bool* render_complete = nullptr);
 
-    inline void DrawSliderLinear(slidercurve init_point, slidercurve &curves, double &dist_left, DirectX::XMVECTORF32 color, bool hardrock = false, float_t completion = 0.f, bool reverse = false, DirectX::SimpleMath::Vector2 *vec = nullptr);
+    inline void DrawSliderLinear(slidercurve init_point, slidercurve &curves, double &dist_left, DirectX::XMVECTORF32 color, bool hardrock = false, float_t completion = 0.f, bool reverse = false);
 
-    void DrawSliderPartBiezer(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, bool hardrock = false, float_t completion = 0.f, bool reverse = false, DirectX::SimpleMath::Vector2 *vec = nullptr);
+    void DrawSliderPartBiezer_Deprecated(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, bool hardrock = false, float_t completion = 0.f, bool reverse = false);
 
-    void DrawSliderPerfectCircle(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, bool hardrock = false, float_t completion = 0.f, bool reverse = false, DirectX::SimpleMath::Vector2 *vec = nullptr);
+    void DrawSliderPartBiezer(hitobject& object, double& dist_left, DirectX::XMVECTORF32 color, bool hardrock = false, float_t completion = 0.f, bool reverse = false);
+
+    void DrawSliderPerfectCircle_Deprecated(slidercurve init_point, std::vector<slidercurve> &curves, double &dist_left, DirectX::XMVECTORF32 color, bool hardrock = false, float_t completion = 0.f, bool reverse = false);
+
+    void DrawSliderPerfectCircle(hitobject& object, DirectX::XMVECTORF32 color, bool hardrock = false, float_t completion = 0.f, bool reverse = false);
 
     void DrawCircleIWantToKillMyself(int32_t radius = 200)
     {

@@ -16,6 +16,22 @@ struct slidercurve {
     int32_t x;
     int32_t y;
 
+    slidercurve(int32_t x, int32_t y) : x{ x }, y { y }
+    {
+    
+    }
+
+    slidercurve(DirectX::SimpleMath::Vector2 vec) : x{ static_cast<int32_t>(vec.x) }, y{ static_cast<int32_t>(vec.y) }
+    {
+
+    }
+
+    // don't use this tho
+    slidercurve() : x{ 0 }, y{ 0 }
+    {
+    
+    }
+
     bool operator==(slidercurve *curve)
     {
         return this->x == curve->x && this->y == curve->y;
@@ -39,10 +55,12 @@ struct hitobject {
     uint8_t type;
     int32_t x;
     int32_t y;
-    int32_t x_sliderend_real;
-    int32_t y_sliderend_real;
+
+    // do slidercurves.back()!
+    slidercurve sliderend;
+
     std::vector<slidercurve> slidercurves;
-    //std::vector<slidercurve> slidercurves_calculated;
+    std::vector<slidercurve> slidercurves_calculated;
     std::wstring slidertype;
 
     int32_t start_time;
@@ -80,6 +98,10 @@ struct hitobject {
     operator DirectX::SimpleMath::Vector2() const {
         return DirectX::SimpleMath::Vector2(x, y);
     }
+
+    operator slidercurve() const {
+        return slidercurve(x, y);
+    }
 };
 
 struct timingpoint {
@@ -116,6 +138,7 @@ private:
 
     bool ParseTimingPoint(std::vector<std::wstring>& values);
     bool ParseHitObject(std::vector<std::wstring>& values);
+    bool ParseHitObjectSlider(hitobject &object);
     bool ParseDifficultySettings(std::wstring difficulty_line);
     bool ParseGeneral(std::wstring difficulty_line);
     bool ParseMetaData(std::wstring difficulty_line);
@@ -154,36 +177,21 @@ public:
         standard macros
     */
     hitobject* getCurrentHitObject() {
-        try {
-            return &this->hitobjects[(size_t)this->currentObjectIndex];
-        }
-        catch (const std::out_of_range& e)
-        {
-            (e);
+        if (this->currentObjectIndex >= this->hitobjects.size())
             return nullptr;
-        }
+        return &this->hitobjects[this->currentObjectIndex];
     };
 
     hitobject* getNextHitObject() {
-        try {
-            return &this->hitobjects.at((size_t)this->currentObjectIndex + 1);
-        }
-        catch (const std::out_of_range& e)
-        {
-            (e);
+        if ((this->currentObjectIndex + 1) >= this->hitobjects.size())
             return nullptr;
-        }
+        return &this->hitobjects.at(this->currentObjectIndex + 1);
     };
 
     hitobject* getUpcomingHitObject() {
-        try {
-            return &this->hitobjects.at((size_t)this->currentObjectIndex + 2);
-        }
-        catch (const std::out_of_range& e)
-        {
-            (e);
+        if ((this->currentObjectIndex + 2) >= this->hitobjects.size())
             return nullptr;
-        }
+        return &this->hitobjects.at(this->currentObjectIndex + 2);
     };
 
     /*
@@ -191,57 +199,37 @@ public:
     */
     hitobject* getCurrentHitObject(int row)
     {
-        try {
-            return &this->hitobjects_sorted[row][(size_t)this->currentObjectIndex_sorted[row]];
-        }
-        catch (const std::out_of_range& e)
-        {
-            (e);
+        if ((this->currentObjectIndex_sorted[row]) >= this->hitobjects_sorted[row].size())
             return nullptr;
-        }
+        return &this->hitobjects_sorted[row][this->currentObjectIndex_sorted[row]];
     };
 
     hitobject* getNextHitObject(int row)
     {
-        try {
-            return &this->hitobjects_sorted[row].at((size_t)this->currentObjectIndex_sorted[row] + 1);
-        }
-        catch (const std::out_of_range& e)
-        {
-            (e);
+        if ((this->currentObjectIndex_sorted[row] + 1) >= this->hitobjects_sorted[row].size())
             return nullptr;
-        }
+        return &this->hitobjects_sorted[row].at(this->currentObjectIndex_sorted[row] + 1);
     };
 
     hitobject* getUpcomingHitObject(int row)
     {
-        try {
-            return &this->hitobjects_sorted[row].at((size_t)this->currentObjectIndex_sorted[row] + 2);
-        }
-        catch (const std::out_of_range& e)
-        {
-            (e);
+        if ((this->currentObjectIndex_sorted[row] + 2) >= this->hitobjects_sorted[row].size())
             return nullptr;
-        }
+        return &this->hitobjects_sorted[row].at((size_t)this->currentObjectIndex_sorted[row] + 2);
     };
 
     timingpoint* getCurrentTimingPoint()
     {
-        try {
-            return &this->timingpoints.at((size_t)this->currentTimeIndex);
-        }
-        catch (const std::out_of_range& e)
-        {
-            (e);
+        if (this->currentTimeIndex >= this->timingpoints.size())
             return nullptr;
-        }
+        return &this->timingpoints.at(this->currentTimeIndex);
     };
 
-    std::uint32_t currentObjectIndex = 0;
-    std::uint32_t currentObjectIndex_sorted[10]; // mania only
-    std::uint32_t currentUninheritTimeIndex = 0;
-    std::uint32_t currentTimeIndex = 0;
-    std::uint32_t newComboIndex = 0;
+    std::size_t currentObjectIndex = 0;
+    std::size_t currentObjectIndex_sorted[10]; // mania only
+    std::size_t currentUninheritTimeIndex = 0;
+    std::size_t currentTimeIndex = 0;
+    std::size_t newComboIndex = 0;
     std::uint32_t currentBpm;
     float currentSpeed;
     bool kiai;

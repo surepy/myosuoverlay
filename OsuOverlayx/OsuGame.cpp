@@ -39,7 +39,10 @@ void osuGame::LoadGame()
 
     ptr = Signatures::FindPattern(hOsu, Signatures::OSU_BASE, Signatures::OSU_BASE_MASK, Signatures::OSU_BASE_OFFSET, 0);
     if (ptr == NULL)
-        OutputDebugStringW(L"base sig not found!\n");
+    {
+        OutputDebugStringW(L"base sig not found!!!! this is catastrophic! exiting!\n");
+        exit(1);
+    }
     else
     {
         ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD, nullptr);
@@ -71,7 +74,10 @@ void osuGame::LoadGame()
 
     ptr = Signatures::FindPattern(hOsu, Signatures::PLAYDATA, Signatures::PLAYDATA_MASK, Signatures::PLAYDATA_OFFSET, 0);
     if (ptr == NULL)
-        OutputDebugStringW(L"base sig not found!\n");
+    {
+        OutputDebugStringW(L"playdata sig not found! exiting!\n");
+        exit(1);
+    }   
     else
     {
         ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD, nullptr);
@@ -120,7 +126,7 @@ void osuGame::readMemory()
                 loadedMap.currentTimeIndex = 0;
                 loadedMap.currentObjectIndex = 0;
                 loadedMap.newComboIndex = 0;
-                for (uint32_t &i : loadedMap.currentObjectIndex_sorted)
+                for (size_t &i : loadedMap.currentObjectIndex_sorted)
                 {
                     i = 0;
                 }
@@ -173,7 +179,7 @@ void osuGame::readMemory()
         }
         catch (std::out_of_range)
         {
-            for (uint32_t &i : loadedMap.currentObjectIndex_sorted)
+            for (size_t &i : loadedMap.currentObjectIndex_sorted)
             {
                 i = 0;
             }
@@ -185,7 +191,7 @@ void osuGame::readMemory()
         }
         catch (std::invalid_argument)
         {
-            for (uint32_t &i : loadedMap.currentObjectIndex_sorted)
+            for (size_t &i : loadedMap.currentObjectIndex_sorted)
             {
                 i = 0;
             }
