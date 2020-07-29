@@ -20,6 +20,8 @@ void osuGame::LoadGame()
     DWORD ptr;
 
     ptr = Signatures::FindPattern(hOsu, Signatures::FRAME_DELAY, Signatures::FRAME_DELAY_MASK, Signatures::FRAME_DELAY_OFFSET, 0);
+    
+    //  non-critical.
     if (ptr == NULL)
         OutputDebugStringW(L"fps sig not found!\n");
     else
@@ -29,6 +31,8 @@ void osuGame::LoadGame()
     }
 
     ptr = Signatures::FindPattern(hOsu, Signatures::MODS, Signatures::MODS_MASK, Signatures::MODS_OFFSET, 0);
+
+    //  non-critical.
     if (ptr == NULL)
         OutputDebugStringW(L"mod sig not found!\n");
     else
@@ -38,6 +42,8 @@ void osuGame::LoadGame()
     }
 
     ptr = Signatures::FindPattern(hOsu, Signatures::OSU_BASE, Signatures::OSU_BASE_MASK, Signatures::OSU_BASE_OFFSET, 0);
+    
+    //  critical.
     if (ptr == NULL)
     {
         OutputDebugStringW(L"base sig not found!!!! this is catastrophic! exiting!\n");
@@ -64,14 +70,20 @@ void osuGame::LoadGame()
     }
 
     ptr = Signatures::FindPattern(hOsu, Signatures::TIME, Signatures::TIME_MASK, Signatures::TIME_OFFSET, 0);
+    
+    // critical.
     if (ptr == NULL)
-        OutputDebugStringW(L"time sig not found!\n");
+    {
+        OutputDebugStringW(L"time sig not found! exiting!\n");
+        exit(1);
+    }
     else
     {
         ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD, nullptr);
         pOsuMapTime = addr;
     }
 
+    // critical.
     ptr = Signatures::FindPattern(hOsu, Signatures::PLAYDATA, Signatures::PLAYDATA_MASK, Signatures::PLAYDATA_OFFSET, 0);
     if (ptr == NULL)
     {
@@ -95,11 +107,19 @@ void osuGame::readMemory()
     if (!bOsuLoaded)
         return;
 
+    DWORD pPlayData = NULL;
+    if (ppPlayData != NULL)
+    {
+        ReadProcessMemory(hOsu, LPCVOID(ppPlayData), &pPlayData, sizeof DWORD, nullptr);
+        bOsuIngame = (pPlayData != NULL);
+    }
+
     if (pOsuFramedelay != NULL)
         ReadProcessMemory(hOsu, LPCVOID(pOsuFramedelay), &osu_fps, sizeof std::double_t, nullptr);
 
     if (pMods != NULL)
         ReadProcessMemory(hOsu, LPCVOID(pMods), &mods, sizeof std::int32_t, nullptr);
+    else if (false) {}
 
     if (pOsuGameMode != NULL)
     {
@@ -112,7 +132,7 @@ void osuGame::readMemory()
     if (ppBeatmapData != NULL)
         ReadProcessMemory(hOsu, LPCVOID(ppBeatmapData), &pBeatMapData, sizeof std::int32_t, nullptr);
 
-    ///////// bad
+    // bad
     int32_t osu_time;
     ReadProcessMemory(hOsu, LPCVOID(pOsuMapTime), &osu_time, sizeof std::int32_t, nullptr);
 
@@ -257,12 +277,7 @@ void osuGame::readMemory()
         }
     }
 
-    DWORD pPlayData = NULL;
-    if (ppPlayData != NULL)
-    {
-        ReadProcessMemory(hOsu, LPCVOID(ppPlayData), &pPlayData, sizeof DWORD, nullptr);
-        bOsuIngame = (pPlayData != NULL);
-    }
+
 }
 
 void osuGame::CheckMap()

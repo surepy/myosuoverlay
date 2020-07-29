@@ -92,7 +92,7 @@ enum Mods
     ScoreIncreaseMods = 1049688
 };
 
-enum PlayMode { //osu_common::PlayModes
+enum class PlayMode { //osu_common::PlayModes
     STANDARD = 0,
     TAIKO = 1,
     CATCH = 2,

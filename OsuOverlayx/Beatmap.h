@@ -218,11 +218,11 @@ public:
         return &this->hitobjects_sorted[row].at((size_t)this->currentObjectIndex_sorted[row] + 2);
     };
 
-    timingpoint* getCurrentTimingPoint()
+    timingpoint* getCurrentTimingPoint(int offset = 0)
     {
-        if (this->currentTimeIndex >= this->timingpoints.size())
+        if (this->currentTimeIndex + offset >= this->timingpoints.size())
             return nullptr;
-        return &this->timingpoints.at(this->currentTimeIndex);
+        return &this->timingpoints.at(this->currentTimeIndex + offset);
     };
 
     std::size_t currentObjectIndex = 0;

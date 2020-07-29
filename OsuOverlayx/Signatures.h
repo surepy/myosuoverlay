@@ -148,7 +148,7 @@ public:
     static constexpr char *TIME_BACKUP_MASK = PCHAR("xxxxxxx");
     static constexpr int TIME_BACKUP_OFFSET = 6 + 1; // + 1 goes to address that points to the currentAudioTime value
 
-    /*[Backup] Mods
+    /*[Backup] Mods - Bad sig, needs to select mod to work.
 
     see Mods struct
 

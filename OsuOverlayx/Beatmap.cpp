@@ -292,7 +292,7 @@ inline bool beatmap::ParseHitObject(std::vector<std::wstring>& values) {
     if (new_hitobject.IsCircle()) {
         new_hitobject.end_time = new_hitobject.start_time;
 
-        if (Mode == PlayMode::MANIA)
+        if (Mode == (int)PlayMode::MANIA)
         {
             int row = static_cast<int>(std::clamp(std::floor(new_hitobject.x * this->CircleSize / 512), 0.f, CircleSize - 1));
             this->hitobjects_sorted[row].push_back(new_hitobject);

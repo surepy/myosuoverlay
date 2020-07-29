@@ -35,23 +35,33 @@ public:
     void SetName(std::wstring name);
 
 private:
-
     void Update(DX::StepTimer const& timer);
     void Render(osuGame &gameStat);
 
+    // draw our stat texts.
     void RenderStatTexts(osuGame &gameStat);
-    DirectX::XMVECTOR RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &fontPos, DirectX::XMVECTORF32 tColor = DirectX::Colors::White, DirectX::XMVECTORF32 bgColor = DirectX::Colors::Black, int v = 1, float fontsize = 0.5f);
-    void RenderAssistant(osuGame &gameStat);
+    
+    // re-draw game
+    void RenderAssistant(osuGame& gameStat);
 
+    // draw a text with a square behind.
+    DirectX::XMVECTOR RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &fontPos, DirectX::XMVECTORF32 tColor = DirectX::Colors::White, DirectX::XMVECTORF32 bgColor = DirectX::Colors::Black, int v = 1, float fontsize = 0.5f);
+    
+    // draw text.
+    DirectX::SimpleMath::Vector2 DrawText(std::wstring text, float size, DirectX::XMVECTORF32 color, DirectX::SimpleMath::Vector2* pos_force = nullptr, DirectX::SimpleMath::Vector2* offset = nullptr);
+
+    DirectX::SimpleMath::Vector2 DrawText(std::wstring text, float size, DirectX::XMVECTORF32 color, bool direction, DirectX::SimpleMath::Vector2* pos_force = nullptr, DirectX::SimpleMath::Vector2* offset = nullptr);
+
+    // debug func: slider points.
     void DebugDrawSliderPoints(int x, int y, std::vector<slidercurve>& points, DirectX::XMVECTORF32 color = DirectX::Colors::White, bool hardrock = false);
 
     static constexpr float playfield_size[] = { 512.0f, 384.0f };
 
     float x_multiplier, y_multiplier;
-    
     float x_offset, y_offset;
 
     // blatantly pasted from https://github.com/CookieHoodie/OsuBot/blob/master/OsuBots/OsuBot.cpp#L133
+    // calculates screen cooarniate offsets
     void CalculateScreenCoordOffsets()
     {
         float screenWidth = m_outputWidth;
@@ -73,7 +83,6 @@ private:
     }
 
     float x_multiplier_cursor, y_multiplier_cursor;
-
     float x_offset_cursor, y_offset_cursor;
 
     // pasted too, there's really not much i can do to uh not do this.
@@ -143,14 +152,12 @@ private:
         );
     }
 
-    inline DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(hitobject *obj, bool hardrock = false)
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(hitobject *obj, bool hardrock = false)
     {
         return GetScreenCoordFromOsuPixelStandard(obj->x, obj->y, hardrock);
     }
 
-    /**
-        Gets Actual Screen coords from osupixel, this one is used for reading lines completion%
-    */
+    // Gets Actual Screen coords from osupixel, this one is used for reading lines completion%
     DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x1, int32_t y1, int32_t x2, int32_t y2, double_t *inv_completion, bool hardrock = false)
     {
         int y = (y1 + ((y2 - y1) * static_cast<float_t>(std::clamp(*inv_completion, 0.0, 1.0))));
@@ -166,9 +173,7 @@ private:
         );
     }
 
-    /**
-        Gets Actual Screen coords from osupixel, this one is used for reading lines completion%
-    */
+    // Gets Actual Screen coords from osupixel, this one is used for reading lines completion%
     DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x1, int32_t y1, int32_t x2, int32_t y2, float_t *inv_completion, bool hardrock = false)
     {
         int y = (y1 + ((y2 - y1) * std::clamp(*inv_completion, 0.f, 1.f)));
@@ -184,6 +189,7 @@ private:
         );
     }
 
+    // Draw a slider.
     void DrawSlider(hitobject& object, int32_t& time, DirectX::XMVECTORF32 color, bool hardrock = false, bool reverse = false, float_t reverse_completion = 0.f, bool* render_complete = nullptr);
 
     inline void DrawSliderLinear(slidercurve init_point, slidercurve &curves, double &dist_left, DirectX::XMVECTORF32 color, bool hardrock = false, float_t completion = 0.f, bool reverse = false);
@@ -202,9 +208,9 @@ private:
 
         //        DirectX::VertexPositionColor verticies[360];
 
-                // iterate y up to 2*pi, i.e., 360 degree
-                // with small increment in angle as
-                // glVertex2i just draws a point on specified co-ordinate
+        // iterate y up to 2*pi, i.e., 360 degree
+        // with small increment in angle as
+        // glVertex2i just draws a point on specified co-ordinate
         for (i = 0; i < (2 * (atan(1) * 4)); i += 0.01)
         {
             // let 200 is radius of circle and as,
