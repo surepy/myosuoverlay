@@ -63,6 +63,9 @@ struct hitobject {
     std::vector<slidercurve> slidercurves_calculated;
     std::wstring slidertype;
 
+    // streaming until x notes passed.
+    int32_t streaming_until = 0;
+
     int32_t start_time;
     int32_t end_time;
     // more like slides - repeat + 1 but ok
@@ -142,6 +145,8 @@ private:
     bool ParseDifficultySettings(std::wstring difficulty_line);
     bool ParseGeneral(std::wstring difficulty_line);
     bool ParseMetaData(std::wstring difficulty_line);
+
+    std::size_t index_temp;
 public:
     bool Parse(const std::wstring filename, const std::wstring md5hash);
 

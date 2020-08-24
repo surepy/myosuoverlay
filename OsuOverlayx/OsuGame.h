@@ -221,6 +221,16 @@ public:
     std::vector<std::chrono::milliseconds> clicks;
     DirectX::SimpleMath::Vector2 cursorLocation;
 
+
+    std::uint16_t hp = 0;
+
+    std::uint16_t hit300;
+    std::uint16_t hit100;
+    std::uint16_t hit50;
+    std::uint16_t hitmiss;
+
+    std::uint16_t combo_max = 0;
+
     std::int32_t mods = 0;
 
     bool hasMod(const Mods &mod)

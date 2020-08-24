@@ -69,8 +69,9 @@ public:
         These sigs are from:
         https://github.com/Piotrekol/ProcessMemoryDataFinder/blob/3a48045f9686075d67c9533a06f34d98a285afaf/OsuMemoryDataProvider/OsuMemoryReader.cs#L34
     */
-    static constexpr unsigned char OSU_BASE[] = { 0xF8, 0x01, 0x74, 0x04, 0x83 };
-    static constexpr char *OSU_BASE_MASK = PCHAR("xxxxx");
+    //F8 01 74 04 83 65
+    static constexpr unsigned char OSU_BASE[] = { 0xF8, 0x01, 0x74, 0x04, 0x83, 0x65 };
+    static constexpr char *OSU_BASE_MASK = PCHAR("xxxxxx");
     static constexpr int OSU_BASE_OFFSET = 0;
 
     static constexpr int GAMEMODE_OFFSET = -51;

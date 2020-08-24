@@ -16,8 +16,8 @@ void osuGame::LoadGame()
     if (!hOsu)
         return;
 
-    DWORD addr;
-    DWORD ptr;
+    DWORD32 addr;
+    DWORD32 ptr;
 
     ptr = Signatures::FindPattern(hOsu, Signatures::FRAME_DELAY, Signatures::FRAME_DELAY_MASK, Signatures::FRAME_DELAY_OFFSET, 0);
     
@@ -26,7 +26,7 @@ void osuGame::LoadGame()
         OutputDebugStringW(L"fps sig not found!\n");
     else
     {
-        ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD, nullptr);
+        ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD32, nullptr);
         pOsuFramedelay = addr;
     }
 
@@ -37,7 +37,7 @@ void osuGame::LoadGame()
         OutputDebugStringW(L"mod sig not found!\n");
     else
     {
-        ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD, nullptr);
+        ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD32, nullptr);
         pMods = addr;
     }
 
@@ -51,21 +51,21 @@ void osuGame::LoadGame()
     }
     else
     {
-        ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD, nullptr);
+        ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD32, nullptr);
         pBase = ptr;
 
         /* = uses gamemode offset = */
         /* gamemode */
-        ReadProcessMemory(hOsu, LPCVOID(ptr + Signatures::GAMEMODE_OFFSET), &addr, sizeof DWORD, nullptr);
+        ReadProcessMemory(hOsu, LPCVOID(ptr + Signatures::GAMEMODE_OFFSET), &addr, sizeof DWORD32, nullptr);
         pOsuGameMode = addr;
 
         /* Retrys?? */
-        ReadProcessMemory(hOsu, LPCVOID(ptr + Signatures::GAMEMODE_OFFSET), &addr, sizeof DWORD, nullptr);
+        ReadProcessMemory(hOsu, LPCVOID(ptr + Signatures::GAMEMODE_OFFSET), &addr, sizeof DWORD32, nullptr);
         pRetries = addr + Signatures::RETRYS_PTR_OFFSET[0];
 
         /* = uses beatmap offset = */
         /* Beatmap?? */
-        ReadProcessMemory(hOsu, LPCVOID(ptr + Signatures::BEATMAP_DATA_OFFSET), &addr, sizeof DWORD, nullptr);
+        ReadProcessMemory(hOsu, LPCVOID(ptr + Signatures::BEATMAP_DATA_OFFSET), &addr, sizeof DWORD32, nullptr);
         ppBeatmapData = addr;
     }
 
@@ -107,19 +107,38 @@ void osuGame::readMemory()
     if (!bOsuLoaded)
         return;
 
-    DWORD pPlayData = NULL;
+    if (pMods != NULL)
+        ReadProcessMemory(hOsu, LPCVOID(pMods), &mods, sizeof std::int32_t, nullptr);
+
+    DWORD32 pPlayData = NULL;
     if (ppPlayData != NULL)
     {
-        ReadProcessMemory(hOsu, LPCVOID(ppPlayData), &pPlayData, sizeof DWORD, nullptr);
+        ReadProcessMemory(hOsu, LPCVOID(ppPlayData), &pPlayData, sizeof DWORD32, nullptr);
         bOsuIngame = (pPlayData != NULL);
+
+        DWORD32 pTemp = NULL;
+        if (bOsuIngame) 
+        {
+            ReadProcessMemory(hOsu, LPCVOID(pPlayData + 56), &pTemp, sizeof DWORD32, nullptr);
+
+            ReadProcessMemory(hOsu, LPCVOID(pTemp + 138), &hit300, sizeof std::uint16_t, nullptr);
+            ReadProcessMemory(hOsu, LPCVOID(pTemp + 136), &hit100, sizeof std::uint16_t, nullptr);
+            ReadProcessMemory(hOsu, LPCVOID(pTemp + 140), &hit50, sizeof std::uint16_t, nullptr);
+            ReadProcessMemory(hOsu, LPCVOID(pTemp + 146), &hitmiss, sizeof std::uint16_t, nullptr);
+
+            ReadProcessMemory(hOsu, LPCVOID(pTemp + 104), &combo_max, sizeof std::uint16_t, nullptr);
+
+            if (pMods == NULL)
+            {
+                ReadProcessMemory(hOsu, LPCVOID(pTemp + 28), &mods, sizeof DWORD32, nullptr);
+            }
+        
+        }
     }
 
     if (pOsuFramedelay != NULL)
         ReadProcessMemory(hOsu, LPCVOID(pOsuFramedelay), &osu_fps, sizeof std::double_t, nullptr);
 
-    if (pMods != NULL)
-        ReadProcessMemory(hOsu, LPCVOID(pMods), &mods, sizeof std::int32_t, nullptr);
-    else if (false) {}
 
     if (pOsuGameMode != NULL)
     {
@@ -238,9 +257,9 @@ void osuGame::readMemory()
 
         // strings
 
-        DWORD ptr, length;
+        DWORD32 ptr, length;
 
-        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 124), &ptr, sizeof DWORD, nullptr))
+        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 124), &ptr, sizeof DWORD32, nullptr))
         {
             MemoryMapString = Utilities::ReadWStringFromMemory(hOsu, ptr);
         }
@@ -249,7 +268,7 @@ void osuGame::readMemory()
             OutputDebugStringW(L"MemoryMapString Read Fail!\n");
         }
 
-        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 140), &ptr, sizeof DWORD, nullptr))
+        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 140), &ptr, sizeof DWORD32, nullptr))
         {
             MemoryBeatMapFileName = Utilities::ReadWStringFromMemory(hOsu, ptr);
         }
@@ -258,7 +277,7 @@ void osuGame::readMemory()
             OutputDebugStringW(L"MemoryBeatMapFileName Read Fail!\n");
         }
 
-        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 116), &ptr, sizeof DWORD, nullptr))
+        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 116), &ptr, sizeof DWORD32, nullptr))
         {
             MemoryBeatMapFolderName = Utilities::ReadWStringFromMemory(hOsu, ptr);
         }
@@ -267,7 +286,7 @@ void osuGame::readMemory()
             OutputDebugStringW(L"MemoryBeatMapFolderName Read Fail!\n");
         }
 
-        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 108), &ptr, sizeof DWORD, nullptr))
+        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 108), &ptr, sizeof DWORD32, nullptr))
         {
             MemoryBeatMapMD5 = Utilities::ReadWStringFromMemory(hOsu, ptr);
         }

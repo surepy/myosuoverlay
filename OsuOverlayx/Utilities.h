@@ -44,7 +44,11 @@ public:
         // in here, it causes std::bad_alloc.
 
         if (length > 131072)
+        {
+            OutputDebugString(L"ReadWStringFromMemory: length over 131072?");
             return std::wstring(L" ");
+        }
+            
 
         wchar_t* buf = new wchar_t[(size_t)length];
         ReadProcessMemory(hnd, LPCVOID(ptr + 8), buf, (size_t)(length * sizeof(wchar_t)), nullptr);
