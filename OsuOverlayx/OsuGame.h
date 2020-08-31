@@ -229,6 +229,8 @@ public:
     std::uint16_t hit50;
     std::uint16_t hitmiss;
 
+    double player_hp;
+
     std::uint16_t combo_max = 0;
 
     std::int32_t mods = 0;

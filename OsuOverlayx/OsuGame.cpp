@@ -67,7 +67,12 @@ void osuGame::LoadGame()
         /* Beatmap?? */
         ReadProcessMemory(hOsu, LPCVOID(ptr + Signatures::BEATMAP_DATA_OFFSET), &addr, sizeof DWORD32, nullptr);
         ppBeatmapData = addr;
+
+        ReadProcessMemory(hOsu, LPCVOID(ptr + Signatures::TIME_OFFSET), &addr, sizeof DWORD32, nullptr);
+        pOsuMapTime = addr + Signatures::TIME_PTR_OFFSET[0];
     }
+
+    /* Bruh
 
     ptr = Signatures::FindPattern(hOsu, Signatures::TIME, Signatures::TIME_MASK, Signatures::TIME_OFFSET, 0);
     
@@ -81,7 +86,7 @@ void osuGame::LoadGame()
     {
         ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD, nullptr);
         pOsuMapTime = addr;
-    }
+    }*/
 
     // critical.
     ptr = Signatures::FindPattern(hOsu, Signatures::PLAYDATA, Signatures::PLAYDATA_MASK, Signatures::PLAYDATA_OFFSET, 0);
@@ -119,6 +124,7 @@ void osuGame::readMemory()
         DWORD32 pTemp = NULL;
         if (bOsuIngame) 
         {
+            // first offset 56 stuff goes here
             ReadProcessMemory(hOsu, LPCVOID(pPlayData + 56), &pTemp, sizeof DWORD32, nullptr);
 
             ReadProcessMemory(hOsu, LPCVOID(pTemp + 138), &hit300, sizeof std::uint16_t, nullptr);
@@ -132,6 +138,13 @@ void osuGame::readMemory()
             {
                 ReadProcessMemory(hOsu, LPCVOID(pTemp + 28), &mods, sizeof DWORD32, nullptr);
             }
+
+            // first offset 64
+            ReadProcessMemory(hOsu, LPCVOID(pPlayData + 64), &pTemp, sizeof DWORD32, nullptr);
+
+            // we're using playerhp instead of playerhpsmoothed because lol 
+            // playerhpsmoothed is 28 and nonsmoothed is 20
+            ReadProcessMemory(hOsu, LPCVOID(pTemp + 28), &player_hp, sizeof double_t, nullptr);
         
         }
     }

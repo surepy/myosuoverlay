@@ -333,7 +333,15 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
         origin = DirectX::SimpleMath::Vector2(0.f, 0.f);
 
 
-        //this->DrawText(std::to_wstring(gameStat.hp) + L"", 0.4f, Colors::White);
+        this->DrawText(
+            std::to_wstring(gameStat.player_hp), 
+            0.4f, 
+            Colors::White, 
+            &DirectX::SimpleMath::Vector2(
+                (gameStat.player_hp / 200) * ((m_outputWidth / 2) - (m_outputWidth / 46)),
+                static_cast<int>(m_outputHeight / 54)
+            )
+        );
 
         /*
          *  Current note.
@@ -381,7 +389,6 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
                 double slider_progress_actual = slider_progress_rate - (int)slider_progress_rate;
                 bool slider_reverse = ((int)slider_progress_rate % 2) == 1;
                 double completion_end_actual = slider_reverse ? 1.f - slider_progress_actual : slider_progress_actual;
-
 
                 if (current_object->slidertype == L"B" || current_object->slidertype == L"P")
                 {

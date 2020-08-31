@@ -5,6 +5,8 @@
 class osuGame;
 
 //  note: https://github.com/Piotrekol/StreamCompanion/blob/171fab829d921aa9bae355904d8bb90c0eba0e47/plugins/OsuMemoryEventSource/MemoryListener.cs
+//  I have no idea what I'm doing and I should probably learn.
+//  this is a c++ app reading memory from c# app wtf
 struct Signatures
 {
 public:
@@ -77,13 +79,16 @@ public:
     static constexpr int GAMEMODE_OFFSET = -51;
     static constexpr int RETRYS_PTR_OFFSET[] = { 8 };
 
+    static constexpr int TIME_OFFSET = 100;
+    static constexpr int TIME_PTR_OFFSET[] = { -16 };
+
     static constexpr unsigned char STATUS[] = { 0x48, 0x83, 0xF8, 0x04, 0x73, 0x1E };
     static constexpr char *STATUS_MASK = PCHAR("xxxxxx");
     static constexpr int STATUS_OFFSET = 0;
 
-    static constexpr unsigned char TIME[] = { 0x5E, 0x5F, 0x5D, 0xC3, 0xA1, 0x00, 0x00, 0x00, 0x00, 0x89, 0x00, 0x04 };
-    static constexpr char *TIME_MASK = PCHAR("xxxxx????x?x");
-    static constexpr int TIME_OFFSET = 5;
+    //static constexpr unsigned char TIME[] = { 0x5E, 0x5F, 0x5D, 0xC3, 0xA1, 0x00, 0x00, 0x00, 0x00, 0x89, 0x00, 0x04 };
+    //static constexpr char *TIME_MASK = PCHAR("xxxxx????x?x");
+    //static constexpr int TIME_OFFSET = 5;
 
     static constexpr int BEATMAP_DATA_OFFSET = -12; // NOTE: double ponter
 
@@ -145,9 +150,11 @@ public:
     */
 
     //static constexpr unsigned char TIME[] = { 0xDB, 0x5D, 0xE8, 0x8B, 0x45, 0xE8, 0xA3 };
+    /*
     static constexpr unsigned char TIME_BACKUP[] = { 0xDB, 0x5D, 0xEC, 0x8B, 0x45, 0xEC, 0xA3 };
     static constexpr char *TIME_BACKUP_MASK = PCHAR("xxxxxxx");
-    static constexpr int TIME_BACKUP_OFFSET = 6 + 1; // + 1 goes to address that points to the currentAudioTime value
+    static constexpr int TIME_BACKUP_OFFSET = 6 + 1;
+    */ // + 1 goes to address that points to the currentAudioTime value
 
     /*[Backup] Mods - Bad sig, needs to select mod to work.
 
@@ -175,9 +182,9 @@ public:
     \xff\xe0\x8b\x45\x00\x8b\x48\x00\x09\x0d xxxx?xx?xx
     */
 
-    static constexpr unsigned char MODS[] = { 0xFF, 0xE0, 0x8B, 0x45, 0x00, 0x8B, 0x48, 0x00, 0x09, 0x0D };
-    static constexpr char *MODS_MASK = PCHAR("xxxx?xx?xx");
-    static constexpr int MODS_OFFSET = 9 + 1;
+    static constexpr unsigned char MODS[] = { 0x81, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00 };
+    static constexpr char *MODS_MASK = PCHAR("xx????xxxx");
+    static constexpr int MODS_OFFSET = 2;
 
     /* [BACKUP]
     Game mode global (0 = osu!, 1 = osu!taiko, 2 = osu!catch, 3 = osu!mania)
