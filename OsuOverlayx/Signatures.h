@@ -7,6 +7,7 @@ class osuGame;
 //  note: https://github.com/Piotrekol/StreamCompanion/blob/171fab829d921aa9bae355904d8bb90c0eba0e47/plugins/OsuMemoryEventSource/MemoryListener.cs
 //  I have no idea what I'm doing and I should probably learn.
 //  this is a c++ app reading memory from c# app wtf
+//  lol osu has antidebug now this is all gonna be copypasted.
 struct Signatures
 {
 public:
@@ -15,7 +16,7 @@ public:
     //  https://github.com/CookieHoodie/OsuBot/blob/e7564502cce16c8dab3d6b67e478d78d0fce35df/OsuBots/SigScanner.cpp
     //  blindly copypasted for now, learn later.
     //  function needs changes later for sigs that look like "93 ?? 9D AC ??"
-    static DWORD FindPattern(HANDLE processHandle, const unsigned char pattern[], const char* mask, const int offset, size_t begin = 0) {
+    static DWORD FindPattern(HANDLE processHandle, const unsigned char pattern[], const char* mask, const int offset, uintptr_t begin) {
         // pattern in format: unsigned char pattern[] = { 0x90, 0xFF, 0xEE };
         // mask in format: char* mask = "xxx?xxx";
         // begin default is 0
@@ -156,7 +157,8 @@ public:
     static constexpr int TIME_BACKUP_OFFSET = 6 + 1;
     */ // + 1 goes to address that points to the currentAudioTime value
 
-    /*[Backup] Mods - Bad sig, needs to select mod to work.
+    /*
+    [Backup] Mods - Bad sig, needs to select mod to work.
 
     see Mods struct
 

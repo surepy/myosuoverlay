@@ -11,6 +11,14 @@
 
 class Utilities {
 public:
+    static inline std::wstring s2ws(const std::string& str)
+    {
+        int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
+        std::wstring wstrTo(size_needed, 0);
+        MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstrTo[0], size_needed);
+        return wstrTo;
+    }
+
     static inline const DWORD getProcessIDbyName(const wchar_t* name) {
         DWORD process_id = NULL;
         HANDLE process_list = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
@@ -45,10 +53,9 @@ public:
 
         if (length > 131072)
         {
-            OutputDebugString(L"ReadWStringFromMemory: length over 131072?");
+            OutputDebugString(L"ReadWStringFromMemory: length over 131072?\n");
             return std::wstring(L" ");
         }
-            
 
         wchar_t* buf = new wchar_t[(size_t)length];
         ReadProcessMemory(hnd, LPCVOID(ptr + 8), buf, (size_t)(length * sizeof(wchar_t)), nullptr);

@@ -202,6 +202,7 @@ private:
 
     void DrawSliderPerfectCircle(hitobject& object, DirectX::XMVECTORF32 color, bool hardrock = false, float_t completion = 0.f, bool reverse = false);
 
+    /*
     void DrawCircleIWantToKillMyself(int32_t radius = 200)
     {
         float x, y, i;
@@ -222,7 +223,7 @@ private:
                 DirectX::SimpleMath::Vector2(x, y),
                 DirectX::Colors::White
             );*/
-
+    /*
             m_batch->Draw(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST,
                 &DirectX::VertexPositionColor(
                     DirectX::SimpleMath::Vector2(x, y),
@@ -230,13 +231,13 @@ private:
                 ),
                 1
             );
-        }
+        }*/
 
         /*m_batch->Draw(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST,
             verticies,
             360
         );*/
-    }
+    /*}*/
 
     void Clear();
     void Present();

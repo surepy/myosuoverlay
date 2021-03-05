@@ -3,6 +3,7 @@
 #include "OsuOverlay.h"
 #include <algorithm>
 
+
 inline bool split_line(std::wstring line, wchar_t delimiter, std::vector<std::wstring>& result) {
     std::wstringstream input_line(line);
     std::wstring current_line;
@@ -126,7 +127,6 @@ bool beatmap::ParseHitObjectSlider(hitobject& object)
         object.slidercurves_calculated.push_back(slidercurve(object.x, object.y));
         return false;
     }
-
     if (object.slidertype == L"B")
     {
         double length_left = object.pixel_length;
@@ -192,6 +192,31 @@ bool beatmap::ParseHitObjectSlider(hitobject& object)
         if (object.slidercurves.size() != 2)
         {
             throw new std::invalid_argument("More or Less than 3 Points in DrawSliderPerfectCircle! what!?");
+        }
+
+        // fix of weird-ass behaivor of calculated point going -(int32 max).
+        // check if slope is same or no slope & same x axis and use linear calculation if so.
+        // holy shit this code is bad.
+        bool treat_as_linear = false;
+
+        // no slope, and same x axis.
+        if (object.slidercurves.front().x == object.x && object.slidercurves.back().x == object.slidercurves.front().x) {
+            treat_as_linear = true;
+        }
+        // same slope.
+        else {
+            double slope_one = static_cast<double>(object.slidercurves.front().y - object.y) / static_cast<double>(object.slidercurves.front().x - object.x);
+            double slope_two = static_cast<double>(object.slidercurves.back().y - object.slidercurves.front().y) / static_cast<double>(object.slidercurves.back().x - object.slidercurves.front().x);
+
+            treat_as_linear = slope_one == slope_two;
+        }
+
+
+        if (treat_as_linear) {
+            OutputDebugString(std::wstring(L"WARNING | beatmap::ParseHitObjectSlider(): object @ " + std::to_wstring(object.start_time) + L" treating as linear!\n").c_str());
+            object.slidertype = L"L";
+            object.slidercurves.erase(object.slidercurves.begin());
+            return ParseHitObjectSlider(object);
         }
 
         const long double pi = (atan(1) * 4);
@@ -281,9 +306,10 @@ bool beatmap::ParseHitObjectSlider(hitobject& object)
     return true;
 }
 
-inline bool beatmap::ParseHitObject(std::vector<std::wstring>& values) {
+inline bool beatmap::ParseHitObject(std::vector<std::wstring>& values, const std::wstring & definition) {
     hitobject new_hitobject;
 
+    new_hitobject.definition = definition;
     new_hitobject.type = std::stoi(values.at(3));
     new_hitobject.x = std::stoi(values.at(0));
     new_hitobject.y = std::stoi(values.at(1));
@@ -438,13 +464,6 @@ bool beatmap::Parse(const std::wstring filename, const std::wstring md5hash) {
     while (std::getline(beatmap_file, current_line)) {
         static std::wstring current_section;
 
-        /*
-        OutputDebugStringW(current_section.c_str());
-        OutputDebugStringW(L" ");
-        OutputDebugStringW(current_line.c_str());
-        OutputDebugStringW(L"\n");
-        */
-
         if (!current_line.empty() && current_line.front() == '[' && current_line.back() == ']') {
             current_section = current_line.substr(1, current_line.length() - 2);
             continue;
@@ -478,7 +497,7 @@ bool beatmap::Parse(const std::wstring filename, const std::wstring md5hash) {
                 this->ParseTimingPoint(values);
             }
             else if (!current_section.compare(L"HitObjects")) {
-                this->ParseHitObject(values);
+                this->ParseHitObject(values, current_line);
             }
         }
     }

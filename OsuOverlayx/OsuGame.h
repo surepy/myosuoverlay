@@ -161,6 +161,8 @@ public:
         return std::thread([this] { LoadGame(); });
     }
 
+    std::thread map_loading;
+
     std::shared_ptr<bool> bOsuLoading = std::make_unique<bool>(false);
     std::shared_ptr<bool> bOsuLoaded = std::make_unique<bool>(false);
 
@@ -214,6 +216,8 @@ public:
     std::wstring MemoryBeatMapFolderName = L" ";
     std::wstring MemoryBeatMapMD5 = L" ";
 
+    bool load_failed = false;
+    std::wstring load_fail_reason = L" ";
     beatmap loadedMap; // loadedmap
 
     hitobject *getCurrentHitObject() { return this->loadedMap.getCurrentHitObject(); };

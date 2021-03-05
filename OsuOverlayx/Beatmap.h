@@ -43,7 +43,8 @@ struct slidercurve {
     }
 
     operator DirectX::SimpleMath::Vector2*() const {
-        return &DirectX::SimpleMath::Vector2(x, y);
+        DirectX::SimpleMath::Vector2 a = DirectX::SimpleMath::Vector2(x, y);
+        return &a;
     }
 
     operator DirectX::SimpleMath::Vector2() const {
@@ -55,6 +56,9 @@ struct hitobject {
     uint8_t type;
     int32_t x;
     int32_t y;
+
+    // 
+    std::wstring definition;
 
     // do slidercurves.back()!
     slidercurve sliderend;
@@ -140,7 +144,7 @@ private:
     bool GetTimingPointFromOffset(uint32_t offset, timingpoint& target_point);
 
     bool ParseTimingPoint(std::vector<std::wstring>& values);
-    bool ParseHitObject(std::vector<std::wstring>& values);
+    bool ParseHitObject(std::vector<std::wstring>& values, const std::wstring & definition);
     bool ParseHitObjectSlider(hitobject &object);
     bool ParseDifficultySettings(std::wstring difficulty_line);
     bool ParseGeneral(std::wstring difficulty_line);
@@ -164,6 +168,7 @@ public:
     int Mode;
 
     bool loaded;
+    
 
     float CircleSize; //  note: this is amount of rows in mania.
     float ApproachRate;

@@ -19,7 +19,7 @@ void osuGame::LoadGame()
     DWORD32 addr;
     DWORD32 ptr;
 
-    ptr = Signatures::FindPattern(hOsu, Signatures::FRAME_DELAY, Signatures::FRAME_DELAY_MASK, Signatures::FRAME_DELAY_OFFSET, 0);
+    ptr = Signatures::FindPattern(hOsu, Signatures::FRAME_DELAY, Signatures::FRAME_DELAY_MASK, Signatures::FRAME_DELAY_OFFSET, reinterpret_cast<uintptr_t>(hOsu));
     
     //  non-critical.
     if (ptr == NULL)
@@ -30,7 +30,7 @@ void osuGame::LoadGame()
         pOsuFramedelay = addr;
     }
 
-    ptr = Signatures::FindPattern(hOsu, Signatures::MODS, Signatures::MODS_MASK, Signatures::MODS_OFFSET, 0);
+    ptr = Signatures::FindPattern(hOsu, Signatures::MODS, Signatures::MODS_MASK, Signatures::MODS_OFFSET, reinterpret_cast<uintptr_t>(hOsu));
 
     //  non-critical.
     if (ptr == NULL)
@@ -41,7 +41,7 @@ void osuGame::LoadGame()
         pMods = addr;
     }
 
-    ptr = Signatures::FindPattern(hOsu, Signatures::OSU_BASE, Signatures::OSU_BASE_MASK, Signatures::OSU_BASE_OFFSET, 0);
+    ptr = Signatures::FindPattern(hOsu, Signatures::OSU_BASE, Signatures::OSU_BASE_MASK, Signatures::OSU_BASE_OFFSET, reinterpret_cast<uintptr_t>(hOsu));
     
     //  critical.
     if (ptr == NULL)
@@ -71,22 +71,6 @@ void osuGame::LoadGame()
         ReadProcessMemory(hOsu, LPCVOID(ptr + Signatures::TIME_OFFSET), &addr, sizeof DWORD32, nullptr);
         pOsuMapTime = addr + Signatures::TIME_PTR_OFFSET[0];
     }
-
-    /* Bruh
-
-    ptr = Signatures::FindPattern(hOsu, Signatures::TIME, Signatures::TIME_MASK, Signatures::TIME_OFFSET, 0);
-    
-    // critical.
-    if (ptr == NULL)
-    {
-        OutputDebugStringW(L"time sig not found! exiting!\n");
-        exit(1);
-    }
-    else
-    {
-        ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD, nullptr);
-        pOsuMapTime = addr;
-    }*/
 
     // critical.
     ptr = Signatures::FindPattern(hOsu, Signatures::PLAYDATA, Signatures::PLAYDATA_MASK, Signatures::PLAYDATA_OFFSET, 0);
@@ -172,7 +156,7 @@ void osuGame::readMemory()
     {
         try {
             //  the map is restarted. prob a better way to do this exist but /shrug
-            if (osuMapTime > osu_time)// std::stod(gameStat.mfOsuMapTime->ReadToEnd()) * 1000)
+            if (osuMapTime > osu_time)
             {
                 loadedMap.currentUninheritTimeIndex = 0;
                 loadedMap.currentTimeIndex = 0;
@@ -346,13 +330,39 @@ void osuGame::CheckMap()
             loadedMap.loaded = true;
             OutputDebugStringW(L"Loaded!\n");
         }
-        catch (std::out_of_range)
+        catch (std::out_of_range *e )
         {
+            load_failed = true;
+            load_fail_reason = L"out-of-range!";
             OutputDebugStringW(L"Load failed!\n");
+            loadedMap.Unload();
+        }
+        catch (std::out_of_range &e)
+        {
+            load_failed = true;
+            load_fail_reason = L"out-of-range!";
+            OutputDebugStringW(L"Load failed!\n");
+            loadedMap.Unload();
+        }
+        catch (std::invalid_argument *e)
+        {
+            load_failed = true;
+            load_fail_reason = L"Invalid Sliders in map!";
+            OutputDebugStringW(L"Load failed! - Invalid sliders\n");
+            loadedMap.Unload();
+        }
+        catch (std::exception *e)
+        {
+            load_failed = true;
+            load_fail_reason = L"unknown!";
+            OutputDebugStringW(L"Load failed! : ALL EXCEPTION IDK WTF THIS IS \n");
+            OutputDebugStringA(e->what());
             loadedMap.Unload();
         }
         catch (std::exception &e)
         {
+            load_failed = true;
+            load_fail_reason = L"unknown!";
             OutputDebugStringW(L"Load failed! : ALL EXCEPTION IDK WTF THIS IS \n");
             OutputDebugStringA(e.what());
             loadedMap.Unload();
