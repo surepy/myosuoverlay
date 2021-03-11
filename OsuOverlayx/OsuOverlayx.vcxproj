@@ -182,6 +182,7 @@
     <ClCompile Include="OsuGame.cpp" />
     <ClCompile Include="OsuOverlay.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Utilities.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Beatmap.h" />

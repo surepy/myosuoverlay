@@ -1,8 +1,5 @@
 #pragma once
 #include <Windows.h>
-#include "OsuGame.h"
-
-class osuGame;
 
 //  note: https://github.com/Piotrekol/StreamCompanion/blob/171fab829d921aa9bae355904d8bb90c0eba0e47/plugins/OsuMemoryEventSource/MemoryListener.cs
 //  I have no idea what I'm doing and I should probably learn.
@@ -11,12 +8,22 @@ class osuGame;
 struct Signatures
 {
 public:
-    //  https://aixxe.net/2016/10/osu-game-hacking
-    //  https://github.com/aixxe/osu-relax/blob/master/relax/src/findpattern.h
-    //  https://github.com/CookieHoodie/OsuBot/blob/e7564502cce16c8dab3d6b67e478d78d0fce35df/OsuBots/SigScanner.cpp
-    //  blindly copypasted for now, learn later.
-    //  function needs changes later for sigs that look like "93 ?? 9D AC ??"
-    static DWORD FindPattern(HANDLE processHandle, const unsigned char pattern[], const char* mask, const int offset, uintptr_t begin) {
+    /// <summary>
+    /// blindly copypasted for now, learn later.
+    /// function needs changes later for sigs that look like "93 ?? 9D AC ??"
+    /// 
+    /// https://aixxe.net/2016/10/osu-game-hacking
+    /// https://github.com/aixxe/osu-relax/blob/master/relax/src/findpattern.h
+    /// https://github.com/nullworks/cathook/blob/63602affbcf75eda799da37d0968f43c296308d1/src/copypasted/CSignature.cpp#L79
+    /// https://github.com/CookieHoodie/OsuBot/blob/e7564502cce16c8dab3d6b67e478d78d0fce35df/OsuBots/SigScanner.cpp
+    /// </summary>
+    /// <param name="processHandle"></param>
+    /// <param name="pattern"></param>
+    /// <param name="mask"></param>
+    /// <param name="offset"></param>
+    /// <param name="begin"></param>
+    /// <returns></returns>
+    static DWORD FindPattern(HANDLE processHandle, const unsigned char pattern[], const char* mask, const int offset, uintptr_t begin, uintptr_t end = INT_MAX) {
         // pattern in format: unsigned char pattern[] = { 0x90, 0xFF, 0xEE };
         // mask in format: char* mask = "xxx?xxx";
         // begin default is 0
@@ -27,7 +34,7 @@ public:
 
         unsigned char chunk[read_size];
 
-        for (size_t i = begin; i < INT_MAX; i += read_size - signature_size) {
+        for (size_t i = begin; i < end; i += read_size - signature_size) {
             ReadProcessMemory(processHandle, LPCVOID(i), &chunk, read_size, NULL);
 
             for (size_t a = 0; a < read_size; a++) {
@@ -45,7 +52,7 @@ public:
             }
         }
 
-        return NULL; // no sig found
+        return NULL; // no sig found.
     }
 
     // got from external sources :)
@@ -184,9 +191,9 @@ public:
     \xff\xe0\x8b\x45\x00\x8b\x48\x00\x09\x0d xxxx?xx?xx
     */
 
-    static constexpr unsigned char MODS[] = { 0x81, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00 };
-    static constexpr char *MODS_MASK = PCHAR("xx????xxxx");
-    static constexpr int MODS_OFFSET = 2;
+    static constexpr unsigned char MODS[] = { 0xC8, 0xFF, 0x00, 0x00,0x00,0x00,0x00,0x81,0x0D,0x00,0x00,0x00,0x00,0x00,0x08,0x00,0x00 };
+    static constexpr char *MODS_MASK = PCHAR("xx?????xx????xxxx");
+    static constexpr int MODS_OFFSET = 9;
 
     /* [BACKUP]
     Game mode global (0 = osu!, 1 = osu!taiko, 2 = osu!catch, 3 = osu!mania)

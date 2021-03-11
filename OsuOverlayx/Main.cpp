@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "OsuOverlay.h"
 #include "OsuGame.h"
 
@@ -57,6 +58,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         }
         else
         {
+            gameStat.readMemoryOnlyFps();
             g_game->Tick(gameStat);
         }
     }
@@ -138,31 +140,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     g_game->Initialize(hWnd, wr.right - wr.left, wr.bottom - wr.top);
 
-    /*
-    if (FindWindow(NULL, L"osu!StreamCompanion by Piotrekol") == 0)
-    {
-        MessageBox(NULL, L"StreamCompanion is not found! things will not work as intended!", L"StreamCompanion not found!", MB_ICONEXCLAMATION);
-    }
-    */
-
-    //  init shared memory
-
-    gameStat.mfCursor = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("cursor_loc"));                // unused.. why is this here?
-    gameStat.mfKey = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("kps_bpm"));                      // unused.. why is this here? 2
-    gameStat.mfKeyStat = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("key_status"));               // unused.. why is this here? 3
-    gameStat.mfOsuMapTime = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("time_osu"));              // unused, i pull info directly from osu itself now.
-    gameStat.mfOsuFileLoc = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("osu_file_loc"));          // unused. 
-    gameStat.mfOsuKiaiStat = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("osu_kiai_stat"));        // unused.
-    gameStat.mfOsuPlayHits = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("livepp_hits"));          // relayed
-    gameStat.mfOsuPlayHP = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("np_hp"));                  // relayed
-    gameStat.mfOsuPlayPP = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("livepp_current_pp"));      // relayed
-    gameStat.mfCurrentModsStr = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("current_mods"));      // relayed (todo) and used for HD visual
-    gameStat.mfCurrentOsuGMode = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("current_osu_mode"));      // used for wtf mod are we playing
-
-    gameStat.currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch()
-        );
-    gameStat.previousDistTime = gameStat.currentTime - std::chrono::milliseconds(999);
+    // example: 
+    // gameStat.mfOsuPlayPP = std::unique_ptr<Utilities::MappingFile>(new Utilities::MappingFile("livepp_current_pp"));
 
     return TRUE;
 }

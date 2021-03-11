@@ -1,5 +1,9 @@
 #include "pch.h"
 #include "OsuGame.h"
+#include <Windows.h>
+#include "Signatures.h"
+#include <shlObj.h>
+#include <algorithm>
 
 void osuGame::UnloadGame()
 {
@@ -28,6 +32,9 @@ void osuGame::LoadGame()
     {
         ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD32, nullptr);
         pOsuFramedelay = addr;
+
+        // for init
+        ReadProcessMemory(hOsu, LPCVOID(pOsuFramedelay), &osu_fps, sizeof std::double_t, nullptr);
     }
 
     ptr = Signatures::FindPattern(hOsu, Signatures::MODS, Signatures::MODS_MASK, Signatures::MODS_OFFSET, reinterpret_cast<uintptr_t>(hOsu));
@@ -37,6 +44,7 @@ void osuGame::LoadGame()
         OutputDebugStringW(L"mod sig not found!\n");
     else
     {
+        //https://github.com/Piotrekol/ProcessMemoryDataFinder/blob/master/OsuMemoryDataProvider/OsuMemoryReader.cs#L74 
         ReadProcessMemory(hOsu, LPCVOID(ptr), &addr, sizeof DWORD32, nullptr);
         pMods = addr;
     }
@@ -91,6 +99,7 @@ void osuGame::LoadGame()
     OutputDebugStringW(L"LoadGame: Exit\n");
 }
 
+// https://github.com/Piotrekol/ProcessMemoryDataFinder/blob/master/OsuMemoryDataProvider/OsuMemoryReader.cs
 void osuGame::readMemory()
 {
     if (!bOsuLoaded)
@@ -133,9 +142,7 @@ void osuGame::readMemory()
         }
     }
 
-    if (pOsuFramedelay != NULL)
-        ReadProcessMemory(hOsu, LPCVOID(pOsuFramedelay), &osu_fps, sizeof std::double_t, nullptr);
-
+    this->readMemoryOnlyFps();
 
     if (pOsuGameMode != NULL)
     {
@@ -148,7 +155,7 @@ void osuGame::readMemory()
     if (ppBeatmapData != NULL)
         ReadProcessMemory(hOsu, LPCVOID(ppBeatmapData), &pBeatMapData, sizeof std::int32_t, nullptr);
 
-    // bad
+    // get our osu map time.
     int32_t osu_time;
     ReadProcessMemory(hOsu, LPCVOID(pOsuMapTime), &osu_time, sizeof std::int32_t, nullptr);
 
@@ -158,83 +165,69 @@ void osuGame::readMemory()
             //  the map is restarted. prob a better way to do this exist but /shrug
             if (osuMapTime > osu_time)
             {
-                loadedMap.currentUninheritTimeIndex = 0;
-                loadedMap.currentTimeIndex = 0;
-                loadedMap.currentObjectIndex = 0;
-                loadedMap.newComboIndex = 0;
-                for (size_t &i : loadedMap.currentObjectIndex_sorted)
-                {
-                    i = 0;
-                }
+                loadedMap.resetIndexes();
             }
 
+            // update our map time
             osuMapTime = osu_time;
 
-            if (osuMapTime && osuMapTime > 0) {
-                for (uint32_t i = loadedMap.currentTimeIndex; i < loadedMap.timingpoints.size() && osuMapTime >= static_cast<int>(loadedMap.timingpoints.at(i).offset); i++)
+            // set our indexes for map timingpoint.
+            for (uint32_t i = loadedMap.currentTimeIndex; i < loadedMap.timingpoints.size() && osuMapTime >= loadedMap.getTimingPoint(i)->offset; i++)
+            {
+                loadedMap.currentBpm = loadedMap.getTimingPoint(i)->getBPM();
+                loadedMap.currentSpeed = loadedMap.getTimingPoint(i)->velocity;
+                loadedMap.kiai = loadedMap.getTimingPoint(i)->kiai;
+
+                // update our current timingpoint.
+                loadedMap.currentTimeIndex = i;
+
+                // if this is not an inherited timing point, update our uninherited time index.
+                if (!loadedMap.getTimingPoint(i)->inherited)
                 {
-                    loadedMap.currentBpm = static_cast<int>(60000 / loadedMap.timingpoints.at(i).ms_per_beat);
-                    loadedMap.currentSpeed = loadedMap.timingpoints.at(i).velocity;
-                    loadedMap.kiai = loadedMap.timingpoints.at(i).kiai;
-                    loadedMap.currentTimeIndex = i;
-                    if (!loadedMap.timingpoints.at(i).inherited)
-                    {
-                        loadedMap.currentUninheritTimeIndex = i;
-                    }
+                    loadedMap.currentUninheritTimeIndex = i;
                 }
             }
-            else
-            {
-                loadedMap.currentTimeIndex = 0;
-                loadedMap.currentUninheritTimeIndex = 0;
-            }
 
-            for (uint32_t i = loadedMap.currentObjectIndex; i < loadedMap.hitobjects.size() && osuMapTime >= loadedMap.hitobjects[i].start_time; i++)
+            // set our indexes for general objects in the vector.
+            for (uint32_t i = loadedMap.currentObjectIndex; i < loadedMap.hitobjects.size() && osuMapTime >= loadedMap.getHitObject(i)->start_time; i++)
             {
+                // update our current hitobject index.
                 loadedMap.currentObjectIndex = i;
-                if (loadedMap.hitobjects.at(i).IsNewCombo())
+
+                // if note is new combo, update that index too.
+                if (loadedMap.getHitObject(i)->IsNewCombo())
                 {
                     loadedMap.newComboIndex = i;
                 }
             }
+
+            // update our mania index.
             if (gameMode == PlayMode::MANIA)
             {
-                for (int i = 0; i < 10; ++i)    // 10 because hardcoded row lol
+                for (size_t row = 0; row < loadedMap.CircleSize; ++row)    
                 {
-                    if (loadedMap.hitobjects_sorted[i].size() == 0)
-                        break;
+                    // if there's absolutely no notes, ignore
+                    if (loadedMap.hitobjects_sorted[row].size() == 0)
+                        continue;
 
-                    for (uint32_t a = loadedMap.currentObjectIndex_sorted[i]; a < loadedMap.hitobjects_sorted[i].size() && osuMapTime >= loadedMap.hitobjects_sorted[i].at(a).start_time; a++)
+                    for (uint32_t i = loadedMap.currentObjectIndex_sorted[row]; i < loadedMap.hitobjects_sorted[row].size() && osuMapTime >= loadedMap.getHitObject(row, i)->start_time; i++)
                     {
-                        loadedMap.currentObjectIndex_sorted[i] = a;
+                        loadedMap.currentObjectIndex_sorted[row] = i;
                     }
                 }
             }
 
-            beatIndex = static_cast<int>((osuMapTime - static_cast<int>(loadedMap.timingpoints.at(loadedMap.currentUninheritTimeIndex).offset)) / loadedMap.timingpoints.at(loadedMap.currentUninheritTimeIndex).ms_per_beat);
+            // get our... bpm beat index?
+            beatIndex = static_cast<int>((osuMapTime - loadedMap.getCurrentUninheritedTimingPoint()->offset) / loadedMap.getCurrentUninheritedTimingPoint()->ms_per_beat);
         }
         catch (std::out_of_range)
         {
-            for (size_t &i : loadedMap.currentObjectIndex_sorted)
-            {
-                i = 0;
-            }
-            loadedMap.currentUninheritTimeIndex = 0;
-            loadedMap.currentTimeIndex = 0;
-            loadedMap.currentObjectIndex = 0;
-            loadedMap.newComboIndex = 0;
+            loadedMap.resetIndexes();
             bOsuIngame = false;
         }
         catch (std::invalid_argument)
         {
-            for (size_t &i : loadedMap.currentObjectIndex_sorted)
-            {
-                i = 0;
-            }
-            loadedMap.currentUninheritTimeIndex = 0;
-            loadedMap.currentTimeIndex = 0;
-            loadedMap.currentObjectIndex = 0;
-            loadedMap.newComboIndex = 0;
+            loadedMap.resetIndexes();
             bOsuIngame = false;
         }
     }
@@ -294,6 +287,32 @@ void osuGame::readMemory()
     }
 
 
+}
+
+void osuGame::readMemoryOnlyFps()
+{
+    if (!*bOsuLoaded) {
+        return;
+    }
+
+    if (pOsuFramedelay != NULL) {
+
+        std::chrono::milliseconds epoch = Utilities::time_since_epoch();
+        osu_fps_previous = osu_fps;
+
+        ReadProcessMemory(hOsu, LPCVOID(pOsuFramedelay), &osu_fps, sizeof std::double_t, nullptr);
+
+        if (osu_fps - osu_fps_previous > 5.0) {
+            last_performance_issue = epoch;
+            last_performance_issue_fps_previous = 1000.0 / osu_fps_previous;
+            last_performance_issue_fps = 1000.0 / osu_fps;
+        }
+
+        if (epoch - osu_fps_avg_last_update > std::chrono::milliseconds(500)) {
+            osu_fps_avg_last_update = epoch;
+            osu_fps_avg = 1000.0 / osu_fps;
+        }
+    }
 }
 
 void osuGame::CheckMap()
@@ -367,5 +386,42 @@ void osuGame::CheckMap()
             OutputDebugStringA(e.what());
             loadedMap.Unload();
         }
+    }
+}
+
+void osuGame::CheckLoaded()
+{
+    if (*bOsuLoading)
+    {
+        return;
+    }
+
+    if (hOsu != nullptr) {
+        DWORD exitCode = NULL;
+        bool fn = !GetExitCodeProcess(hOsu, &exitCode);
+        if (fn || exitCode != STILL_ACTIVE)
+        {
+            *bOsuLoaded = false;
+            UnloadGame();
+        }
+    }
+    else
+    {
+        if (!*bOsuLoading)
+        {
+            LoadGameWnd();
+
+            if (hOsu != NULL)
+            {
+                *bOsuLoading = true;
+                std::thread a = LoadGameThread();
+                a.detach();
+            }
+        }
+        else
+        {
+            UnloadGame();
+        }
+        return;
     }
 }

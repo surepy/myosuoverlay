@@ -30,12 +30,34 @@
 
 #include <Windows.h>
 #include <wrl/client.h>
+
 #include <d3d11_1.h>
 #include <dxgi1_2.h>
+
 #include <DirectXMath.h>
 #include <DirectXPackedVector.h>
 #include <DirectXCollision.h>
 #include <DirectXColors.h>
+
+#include "CommonStates.h"
+#include "DDSTextureLoader.h"
+#include "DirectXHelpers.h"
+#include "Effects.h"
+#include "GamePad.h"
+#include "GeometricPrimitive.h"
+#include "GraphicsMemory.h"
+#include "Keyboard.h"
+#include "Model.h"
+#include "Mouse.h"
+#include "PostProcess.h"
+#include "PrimitiveBatch.h"
+#include "ScreenGrab.h"
+#include "SimpleMath.h"
+#include "SpriteBatch.h"
+#include "SpriteFont.h"
+#include "VertexTypes.h"
+#include "WICTextureLoader.h"
+
 #include <algorithm>
 #include <exception>
 #include <memory>
@@ -56,24 +78,6 @@
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
-#include "CommonStates.h"
-#include "DDSTextureLoader.h"
-#include "DirectXHelpers.h"
-#include "Effects.h"
-#include "GamePad.h"
-#include "GeometricPrimitive.h"
-#include "GraphicsMemory.h"
-#include "Keyboard.h"
-#include "Model.h"
-#include "Mouse.h"
-#include "PostProcess.h"
-#include "PrimitiveBatch.h"
-#include "ScreenGrab.h"
-#include "SimpleMath.h"
-#include "SpriteBatch.h"
-#include "SpriteFont.h"
-#include "VertexTypes.h"
-#include "WICTextureLoader.h"
 #include <wrl.h>
 #include <array>
 #include <wchar.h>
@@ -90,10 +94,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <wincodec.h>
-#include "OsuOverlay.h"
-#include "OsuGame.h"
-#include "Utilities.h"
-//#include "../oppai-3.2.3-windows-x86/src/oppai.c"
 
 #pragma comment(lib,"d3d11.lib")
 

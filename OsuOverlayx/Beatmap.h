@@ -15,6 +15,10 @@ enum ObjectType : uint8_t {
 struct slidercurve {
     int32_t x;
     int32_t y;
+    int32_t get_y(bool hardrock) {
+        return hardrock ? 384 - this->y : this->y;
+    }
+
 
     slidercurve(int32_t x, int32_t y) : x{ x }, y { y }
     {
@@ -50,12 +54,27 @@ struct slidercurve {
     operator DirectX::SimpleMath::Vector2() const {
         return DirectX::SimpleMath::Vector2(x, y);
     }
+
+    DirectX::SimpleMath::Vector2 vec2() {
+        return static_cast<DirectX::SimpleMath::Vector2>(*this);
+    }
+
+    operator slidercurve() const {
+        return slidercurve(x, y);
+    }
+
+    slidercurve slider_curve() {
+        return static_cast<slidercurve>(*this);
+    }
 };
 
 struct hitobject {
     uint8_t type;
     int32_t x;
     int32_t y;
+    int32_t get_y(bool hardrock) {
+        return hardrock ? 384 - this->y : this->y;
+    }
 
     // 
     std::wstring definition;
@@ -82,6 +101,28 @@ struct hitobject {
             && this->end_time == obj->end_time && this->type == obj->type;
     }
 
+    int32_t subtract_start_time(hitobject sub) {
+        return this->start_time - sub.start_time;
+    }
+
+    int32_t subtract_start_time(int32_t sub) {
+        return this->start_time - sub;
+    }
+
+    // these functions are dumb, like really dumb.
+    // why no operator-()? because we also need end_time funcs.
+    int32_t subtract_start_time_inv(int32_t sub) {
+        return sub - this->start_time;
+    }
+
+    int32_t subtract_end_time(hitobject sub) {
+        return this->end_time - sub.end_time;
+    }
+
+    int32_t subtract_end_time(int32_t sub) {
+        return this->end_time - sub;
+    }
+
     bool IsCircle() const {
         return (type & HITOBJECT_CIRCLE) == HITOBJECT_CIRCLE;
     }
@@ -102,8 +143,25 @@ struct hitobject {
         return (type & HITOBJECT_NEW_COMBO) == HITOBJECT_NEW_COMBO;
     }
 
+    /// <summary>
+    /// if slider: gets the real "end curve" of the slider, meaning it respects the repeat counts.
+    /// if not, just return self.
+    /// </summary>
+    /// <returns></returns>
+    slidercurve calculated_back_real() {
+        if (this->repeat % 2 == 0 || !this->IsSlider()) {
+            return slidercurve(this->x, this->y);
+        }
+
+        return this->slidercurves_calculated.back();
+    }
+
     operator DirectX::SimpleMath::Vector2() const {
         return DirectX::SimpleMath::Vector2(x, y);
+    }
+
+    DirectX::SimpleMath::Vector2 vec2() {
+        return static_cast<DirectX::SimpleMath::Vector2>(*this);
     }
 
     operator slidercurve() const {
@@ -118,6 +176,14 @@ struct timingpoint {
     bool kiai;
     bool inherited;
 
+    int32_t subtract_offset(timingpoint sub) {
+        return this->offset - sub.offset;
+    }
+
+    int32_t subtract_offset(int32_t sub) {
+        return this->offset - sub;
+    }
+
     int getBPM() {
         return static_cast<int>(60000 / ms_per_beat);
     }
@@ -130,7 +196,6 @@ struct timingpoint {
     bool operator==(timingpoint const &point)
     {
         return (this->velocity == point.velocity && this->kiai == point.kiai && this->ms_per_beat == point.ms_per_beat && this->inherited);
-        //
     }
 
     bool operator!=(timingpoint const &point)
@@ -161,22 +226,23 @@ public:
     int BeatMapID = 0;
     int BeatmapSetID = 0;
     std::wstring MD5_Hash;
-    /*    std::wstring Title;
-        std::wstring Artist;
-        std::wstring Creator;
-        std::wstring Version;*/
+    std::wstring Title;
+    std::wstring Artist;
+    std::wstring Creator;
+    std::wstring Version;
     int Mode;
 
     bool loaded;
     
-
-    float CircleSize; //  note: this is amount of rows in mania.
+    //  note: this is amount of rows in mania.
+    float CircleSize; 
     float ApproachRate;
     float SliderMultiplier;
 
     std::vector<hitobject> hitobjects;
     std::vector<timingpoint> timingpoints;
 
+    // move to overlay.h
     std::vector<hitobject> aspire_dumb_slider_hitobjects;
 
     std::vector<hitobject> hitobjects_sorted[10];   // mostly for mania
@@ -186,54 +252,78 @@ public:
     /*
         standard macros
     */
-    hitobject* getCurrentHitObject() {
-        if (this->currentObjectIndex >= this->hitobjects.size())
+    hitobject* getHitObject(size_t index) {
+        if (index >= this->hitobjects.size())
             return nullptr;
-        return &this->hitobjects[this->currentObjectIndex];
+        return &this->hitobjects.at(index);
+    }
+
+    hitobject* getCurrentHitObject() {
+        return this->getHitObject(this->currentObjectIndex);
     };
 
     hitobject* getNextHitObject() {
-        if ((this->currentObjectIndex + 1) >= this->hitobjects.size())
-            return nullptr;
-        return &this->hitobjects.at(this->currentObjectIndex + 1);
+        return this->getHitObject(this->currentObjectIndex + 1);
     };
 
     hitobject* getUpcomingHitObject() {
-        if ((this->currentObjectIndex + 2) >= this->hitobjects.size())
-            return nullptr;
-        return &this->hitobjects.at(this->currentObjectIndex + 2);
+        return this->getHitObject(this->currentObjectIndex + 2);
     };
 
     /*
         mania macros
     */
-    hitobject* getCurrentHitObject(int row)
-    {
-        if ((this->currentObjectIndex_sorted[row]) >= this->hitobjects_sorted[row].size())
+    hitobject* getHitObject(size_t row, size_t index) {
+        if (index >= this->hitobjects_sorted[row].size())
             return nullptr;
-        return &this->hitobjects_sorted[row][this->currentObjectIndex_sorted[row]];
+        return &this->hitobjects_sorted[row][index];
+    }
+
+    hitobject* getCurrentHitObject(size_t row)
+    {
+        return this->getHitObject(row, this->currentObjectIndex_sorted[row]);
     };
 
     hitobject* getNextHitObject(int row)
     {
-        if ((this->currentObjectIndex_sorted[row] + 1) >= this->hitobjects_sorted[row].size())
-            return nullptr;
-        return &this->hitobjects_sorted[row].at(this->currentObjectIndex_sorted[row] + 1);
+        return this->getHitObject(row, this->currentObjectIndex_sorted[row] + 1);
     };
 
     hitobject* getUpcomingHitObject(int row)
     {
-        if ((this->currentObjectIndex_sorted[row] + 2) >= this->hitobjects_sorted[row].size())
+        return this->getHitObject(row, this->currentObjectIndex_sorted[row] + 2);
+    };
+
+    timingpoint* getTimingPoint(size_t index) {
+        if (index >= this->timingpoints.size())
             return nullptr;
-        return &this->hitobjects_sorted[row].at((size_t)this->currentObjectIndex_sorted[row] + 2);
+        return &this->timingpoints.at(index);
+    }
+
+    timingpoint* getCurrentUninheritedTimingPoint(int offset = 0)
+    {
+        return this->getTimingPoint(this->currentUninheritTimeIndex + offset);
     };
 
     timingpoint* getCurrentTimingPoint(int offset = 0)
     {
-        if (this->currentTimeIndex + offset >= this->timingpoints.size())
-            return nullptr;
-        return &this->timingpoints.at(this->currentTimeIndex + offset);
+        return this->getTimingPoint(this->currentTimeIndex + offset);
     };
+
+    // consider refactoring, but you're probably too lazy to do so.
+    // indexes for objects
+    void resetIndexes() {
+        for (size_t& i : this->currentObjectIndex_sorted)
+        {
+            i = 0;
+        }
+        this->currentUninheritTimeIndex = 0;
+        this->currentTimeIndex = 0;
+        this->currentObjectIndex = 0;
+        this->newComboIndex = 0;
+        this->currentSpeed = 0;
+        this->kiai = false;
+    }
 
     std::size_t currentObjectIndex = 0;
     std::size_t currentObjectIndex_sorted[10]; // mania only

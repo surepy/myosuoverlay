@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Beatmap.h"
 #include "OsuOverlay.h"
+#include "OsuGame.h"
 #include <algorithm>
-
 
 inline bool split_line(std::wstring line, wchar_t delimiter, std::vector<std::wstring>& result) {
     std::wstringstream input_line(line);
@@ -35,8 +35,14 @@ inline bool beatmap::GetTimingPointFromOffset(uint32_t offset, timingpoint& targ
 
 inline bool beatmap::ParseTimingPoint(std::vector<std::wstring>& values) {
     static float last_ms_per_beat;
-
-    bool kiai = std::stoi(values.at(7)) == 1;
+    
+    // osu file format v6 fix...
+    try {
+        bool kiai = std::stoi(values.at(7)) == 1;
+    }
+    catch (std::out_of_range& e) {
+        bool kiai = false;
+    }
 
     int32_t offset;
     try {
@@ -514,11 +520,10 @@ void beatmap::Unload()
 
     this->BeatMapID = 0;
     this->BeatmapSetID = 0;
-    /*
-    this->Title = nullptr;
-    this->Artist = nullptr;
-    this->Creator = nullptr;
-    this->Version = nullptr;*/
+    this->Title = L"";
+    this->Artist = L"";
+    this->Creator = L"";
+    this->Version = L"";
     this->Mode = 0;
 
     this->loaded = false;

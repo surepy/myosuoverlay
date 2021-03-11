@@ -1,11 +1,10 @@
 #pragma once
 
-#include "pch.h"
-#include "Beatmap.h"
 #include "StepTimer.h"
-#include "OsuOverlay.h"
-#include "OsuGame.h"
-#include <Math.h>
+#include "Beatmap.h"
+
+class osuGame;
+class Utilities;
 
 // A basic game implementation that creates a D3D11 device and
 // provides a game loop.
@@ -40,9 +39,22 @@ private:
 
     // draw our stat texts.
     void RenderStatTexts(osuGame &gameStat);
+
+    // re-draw game (mania)
+    void RenderStatTextsStandard(osuGame& gameStat);
+
+    // re-draw game (mania)
+    void RenderStatTextsMania(osuGame& gameStat);
     
     // re-draw game
     void RenderAssistant(osuGame& gameStat);
+
+    // re-draw game (mania)
+    void RenderAssistantStandardHidden(osuGame& gameStat);
+    void RenderAssistantStandard(osuGame& gameStat);
+
+    // re-draw game (mania)
+    void RenderAssistantMania(osuGame& gameStat);
 
     // draw a text with a square behind.
     DirectX::XMVECTOR RenderStatSquare(std::wstring &text, DirectX::SimpleMath::Vector2 &origin, DirectX::SimpleMath::Vector2 &fontPos, DirectX::XMVECTORF32 tColor = DirectX::Colors::White, DirectX::XMVECTORF32 bgColor = DirectX::Colors::Black, int v = 1, float fontsize = 0.5f);
@@ -155,12 +167,15 @@ private:
     DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(hitobject *obj, bool hardrock = false)
     {
         return GetScreenCoordFromOsuPixelStandard(obj->x, obj->y, hardrock);
-    }
+    } 
 
     // Gets Actual Screen coords from osupixel, this one is used for reading lines completion%
-    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x1, int32_t y1, int32_t x2, int32_t y2, double_t *inv_completion, bool hardrock = false)
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(slidercurve const& first, slidercurve const& second, double_t inv_completion, bool hardrock = false);
+
+    // Gets Actual Screen coords from osupixel, this one is used for reading lines completion%
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x1, int32_t y1, int32_t x2, int32_t y2, double_t inv_completion, bool hardrock = false)
     {
-        int y = (y1 + ((y2 - y1) * static_cast<float_t>(std::clamp(*inv_completion, 0.0, 1.0))));
+        int y = (y1 + ((y2 - y1) * static_cast<float_t>(std::clamp(inv_completion, 0.0, 1.0))));
 
         if (hardrock)
         {
@@ -168,15 +183,15 @@ private:
         }
 
         return DirectX::SimpleMath::Vector2(
-            x_offset + (x1 + ((x2 - x1) * static_cast<float_t>(std::clamp(*inv_completion, 0.0, 1.0)))) * x_multiplier,
+            x_offset + (x1 + ((x2 - x1) * static_cast<float_t>(std::clamp(inv_completion, 0.0, 1.0)))) * x_multiplier,
             y_offset + y * y_multiplier
         );
     }
 
     // Gets Actual Screen coords from osupixel, this one is used for reading lines completion%
-    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x1, int32_t y1, int32_t x2, int32_t y2, float_t *inv_completion, bool hardrock = false)
+    DirectX::SimpleMath::Vector2 GetScreenCoordFromOsuPixelStandard(int32_t x1, int32_t y1, int32_t x2, int32_t y2, float_t inv_completion, bool hardrock = false)
     {
-        int y = (y1 + ((y2 - y1) * std::clamp(*inv_completion, 0.f, 1.f)));
+        int y = (y1 + ((y2 - y1) * std::clamp(inv_completion, 0.f, 1.f)));
 
         if (hardrock)
         {
@@ -184,7 +199,7 @@ private:
         }
 
         return DirectX::SimpleMath::Vector2(
-            x_offset + (x1 + ((x2 - x1) * std::clamp(*inv_completion, 0.f, 1.f))) * x_multiplier,
+            x_offset + (x1 + ((x2 - x1) * std::clamp(inv_completion, 0.f, 1.f))) * x_multiplier,
             y_offset + y * y_multiplier
         );
     }

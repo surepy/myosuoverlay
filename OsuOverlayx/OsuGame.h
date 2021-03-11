@@ -1,10 +1,6 @@
 #pragma once
-#include <Windows.h>
 #include "Utilities.h"
-#include "Signatures.h"
 #include "Beatmap.h"
-#include <shlObj.h>
-#include <algorithm>
 
 // refactor again soon.
 
@@ -102,12 +98,18 @@ enum class PlayMode { //osu_common::PlayModes
 
 class osuGame {
 private:
+    // pid of osu!.exe
     DWORD dwOsuPid = 0;
+
+    // handle to osu memory.
     HANDLE hOsu = nullptr;
+
+    // where are the song files?
     std::wstring SongFolderLocation = L"C:\\Users\\sleepy\\AppData\\Local\\osu!\\Songs\\";
-    struct PlayData {
-    };
 public:
+    /// <summary>
+    /// get osu's process id and handle.
+    /// </summary>
     inline void LoadGameWnd()
     {
         dwOsuPid = Utilities::getProcessIDbyName(L"osu!.exe");
@@ -117,69 +119,20 @@ public:
     void UnloadGame();
     void CheckMap();
 
-    void CheckLoaded()
-    {
-        if (*bOsuLoading)
-        {
-            return;
-        }
-
-        if (hOsu != nullptr) {
-            DWORD exitCode = NULL;
-            bool fn = !GetExitCodeProcess(hOsu, &exitCode);
-            if (fn || exitCode != STILL_ACTIVE)
-            {
-                *bOsuLoaded = false;
-                UnloadGame();
-            }
-        }
-        else
-        {
-            if (!*bOsuLoading)
-            {
-                LoadGameWnd();
-
-                if (hOsu != NULL)
-                {
-                    *bOsuLoading = true;
-                    std::thread a = LoadGameThread();
-                    a.detach();
-                }
-            }
-            else
-            {
-                UnloadGame();
-            }
-            return;
-        }
-    }
+    void CheckLoaded();
 
     void LoadGame();
 
-    std::thread LoadGameThread()
-    {
-        return std::thread([this] { LoadGame(); });
-    }
+    std::thread LoadGameThread() { return std::thread([this] { LoadGame(); }); }
 
-    std::thread map_loading;
-
+    // is osu loading or loaded?
     std::shared_ptr<bool> bOsuLoading = std::make_unique<bool>(false);
     std::shared_ptr<bool> bOsuLoaded = std::make_unique<bool>(false);
 
     /*
      *  StreamCompanaion shared mapfiles (MOSTLY UNUSED)
     */
-    std::unique_ptr<Utilities::MappingFile> mfCursor;
-    std::unique_ptr<Utilities::MappingFile> mfKey;
-    std::unique_ptr<Utilities::MappingFile> mfOsuPlayHits;
-    std::unique_ptr<Utilities::MappingFile> mfOsuPlayPP;
-    std::unique_ptr<Utilities::MappingFile> mfOsuPlayHP;
-    std::unique_ptr<Utilities::MappingFile> mfKeyStat;
-    std::unique_ptr<Utilities::MappingFile> mfOsuMapTime;
-    std::unique_ptr<Utilities::MappingFile> mfOsuFileLoc;
-    std::unique_ptr<Utilities::MappingFile> mfOsuKiaiStat;
-    std::unique_ptr<Utilities::MappingFile> mfCurrentModsStr;
-    std::unique_ptr<Utilities::MappingFile> mfCurrentOsuGMode;
+    // std::unique_ptr<Utilities::MappingFile> mfOsuPlayPP;
 
     /*
      *  Raw osu pointers (preferred)
@@ -195,20 +148,43 @@ private:
     DWORD pRetries = NULL;
     DWORD ppPlayData = NULL;
 
+    // what the fuck is this 
     DWORD pTemp;
-    DWORD pTemp2;
 
 public:
+    // osu frame time (memory)
     std::double_t osu_fps;
+    // osu frame time, previous memory read.
+    std::double_t osu_fps_previous;
 
-    std::chrono::milliseconds currentTime;
-    std::chrono::milliseconds previousDistTime;
+    // "smoothed" fps update.
+    std::double_t osu_fps_avg;
+    std::chrono::milliseconds osu_fps_avg_last_update;
 
+    // detected performance issue data
+    std::double_t last_performance_issue_fps;
+    std::double_t last_performance_issue_fps_previous;
+    std::chrono::milliseconds last_performance_issue;
+
+    // osu map time (memory, delayed)
     int osuMapTime = 0;
+
+    // gamemode (memory)
     PlayMode gameMode = PlayMode::STANDARD;
+
+    // gameplay stats
     bool bOsuIngame = false;
 
-    // Beatmap data
+    // gameplay stuff (memory)
+    std::int32_t mods = 0;
+    double player_hp;
+    std::uint16_t hit300;
+    std::uint16_t hit100;
+    std::uint16_t hit50;
+    std::uint16_t hitmiss;
+    std::uint16_t combo_max = 0;
+
+    // Beatmap data (memory)
     int MemoryBeatMapID = 0;
     int MemoryBeatMapSetID = 0;
     std::wstring MemoryMapString;
@@ -216,43 +192,59 @@ public:
     std::wstring MemoryBeatMapFolderName = L" ";
     std::wstring MemoryBeatMapMD5 = L" ";
 
+    // beatmap data (non-memory)
+    int beatIndex = 0;
+
+    // if map load fails:
     bool load_failed = false;
     std::wstring load_fail_reason = L" ";
-    beatmap loadedMap; // loadedmap
 
+    // map is loaded.
+    beatmap loadedMap; 
+
+    // loadedmap shortcuts
     hitobject *getCurrentHitObject() { return this->loadedMap.getCurrentHitObject(); };
-
-    std::vector<std::chrono::milliseconds> clicks;
-    DirectX::SimpleMath::Vector2 cursorLocation;
-
-
-    std::uint16_t hp = 0;
-
-    std::uint16_t hit300;
-    std::uint16_t hit100;
-    std::uint16_t hit50;
-    std::uint16_t hitmiss;
-
-    double player_hp;
-
-    std::uint16_t combo_max = 0;
-
-    std::int32_t mods = 0;
 
     bool hasMod(const Mods &mod)
     {
         return (mods & mod) == mod;
     }
 
+    double GetMiliSecondsFromOsuTime(int time)
+    {
+        return time / (hasMod(Mods::DoubleTime) || hasMod(Mods::Nightcore) ? 1.0 : 0.77);
+    }
+
     double GetSecondsFromOsuTime(int time)
     {
-        return (time / (hasMod(Mods::DoubleTime) || hasMod(Mods::Nightcore) ? 1.0 : 0.77) / 1000.0);
+        return (GetMiliSecondsFromOsuTime(time) / 1000.0);
+    }
+
+    int GetActualBPM()
+    {
+        return static_cast<int>(this->loadedMap.getCurrentTimingPoint()->getBPM() * (hasMod(Mods::DoubleTime) || hasMod(Mods::Nightcore) ? 1.5 : 1));
     }
 
     int GetActualBPM(int bpm)
     {
         return static_cast<int>(bpm * (hasMod(Mods::DoubleTime) || hasMod(Mods::Nightcore) ? 1.5 : 1));
     }
+
+    DirectX::XMVECTORF32 GetBeatColorGarbage() {
+        switch (this->beatIndex % 4)
+        {
+        case 1:
+            return DirectX::Colors::AliceBlue;
+        case 2:
+            return DirectX::Colors::LightBlue;
+        case 3:
+            return DirectX::Colors::AliceBlue;
+        case 0:
+        default:
+            return DirectX::Colors::Yellow;
+        }
+    }
+
 
     std::wstring GetFolderActual()
     {
@@ -294,12 +286,6 @@ public:
         return std::clamp(delay, 300, 2400);
     }
 
-    /*
-        Refactor todo
-    */
-    bool clickx = false, clicky = false;
-    int clickCounter = 0;
-    int beatIndex = 0;
-
     void readMemory();
+    void readMemoryOnlyFps();
 };
