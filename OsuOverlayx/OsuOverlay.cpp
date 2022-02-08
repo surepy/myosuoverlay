@@ -603,7 +603,11 @@ void Overlay::RenderStatTextsMania(osuGame& gameStat) {
 
 
         m_fontPos = this->DrawText(L"stat: ", 0.4f, Colors::White);
-        m_fontPos = this->DrawText(L" " + std::to_wstring(gameStat.hit300), 0.4f, Colors::Yellow);
+        m_fontPos = this->DrawText(L" " + std::to_wstring(gameStat.hit300g), 0.4f, Colors::Yellow);
+        m_fontPos = this->DrawText(L" / ", 0.4f, Colors::White);
+        m_fontPos = this->DrawText(std::to_wstring(gameStat.hit300), 0.4f, Colors::GreenYellow);
+        m_fontPos = this->DrawText(L" / ", 0.4f, Colors::White);
+        m_fontPos = this->DrawText(std::to_wstring(gameStat.hit200), 0.4f, Colors::Blue);
         m_fontPos = this->DrawText(L" / ", 0.4f, Colors::White);
         m_fontPos = this->DrawText(std::to_wstring(gameStat.hit100), 0.4f, Colors::LightBlue);
         m_fontPos = this->DrawText(L" / ", 0.4f, Colors::White);

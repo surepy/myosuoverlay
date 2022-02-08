@@ -124,8 +124,6 @@ void osuGame::readMemory()
             ReadProcessMemory(hOsu, LPCVOID(pTemp + 138), &hit300, sizeof std::uint16_t, nullptr);
             ReadProcessMemory(hOsu, LPCVOID(pTemp + 136), &hit100, sizeof std::uint16_t, nullptr);
             ReadProcessMemory(hOsu, LPCVOID(pTemp + 140), &hit50, sizeof std::uint16_t, nullptr);
-
-            std::uint16_t hit300g, hit200;
             ReadProcessMemory(hOsu, LPCVOID(pTemp + 142), &hit300g, sizeof std::uint16_t, nullptr);
             ReadProcessMemory(hOsu, LPCVOID(pTemp + 144), &hit200, sizeof std::uint16_t, nullptr);
 

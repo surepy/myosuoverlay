@@ -105,6 +105,7 @@ inline void CalculateBezierPts(hitobject& object, std::vector<int> &x_points, st
         x = Utilities::getBezierPoint(&x_points, t);
         y = Utilities::getBezierPoint(&y_points, t);
 
+        // HACK: i really don't know how to do this.
         if (DirectX::SimpleMath::Vector2::Distance(prev_point, DirectX::SimpleMath::Vector2(x, y)) < 10 && t != 0)
         {
             continue;

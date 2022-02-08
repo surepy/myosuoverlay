@@ -46,7 +46,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     std::wstring arg = std::wstring(lpCmdLine);
 
-    g_game->SetName(arg == L"" ? L"surepyw" : arg);
+    g_game->SetName(L"py");
 
     MSG msg = {};
     while (WM_QUIT != msg.message)
