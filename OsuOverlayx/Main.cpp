@@ -34,6 +34,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
 
+    std::wstring file = L"C:\\Program Files (x86)\\Steam\\steam.exe";
+    //ShellExecuteW(NULL, L"open", file.c_str(), NULL, NULL, SW_NORMAL);
+
     StringCchCopyW(szWindowClass, 11, L"OsuOverlay");
     StringCchCopyW(szTitle, 22, L"sleepy\'s osu overlay!");
     MyRegisterClass(hInstance);

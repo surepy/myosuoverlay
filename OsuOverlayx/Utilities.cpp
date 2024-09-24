@@ -68,6 +68,12 @@ const DWORD Utilities::getProcessIDbyName(const wchar_t* name) {
     return process_id;
 }
 
+// reads strings off a c# application.
+// 
+// copypasted old version of https://github.com/Piotrekol/ProcessMemoryDataFinder/blob/95030bba9c5e2de0667c4ae95e6e6b1fbbde3d5c/ProcessMemoryDataFinder/ObjectReader.cs#L95
+// 
+// the string structure seems to be [??? probably cap, 4byte][size, int (4byte)][string obj, (size * sizeof(char)) bytes]
+// it's probably pretty similar to c++ strings, except the data isn't a ptr.
 std::wstring Utilities::ReadWStringFromMemory(HANDLE hnd, DWORD ptr) {
     DWORD length;
     std::wstring str;

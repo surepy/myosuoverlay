@@ -178,6 +178,7 @@ public:
     // gameplay stuff (memory)
     std::int32_t mods = 0;
     double player_hp;
+    std::vector<int> hit_errors;
     std::uint16_t hit300g;
     std::uint16_t hit300;
     std::uint16_t hit200;

@@ -93,32 +93,88 @@ inline bool beatmap::ParseTimingPoint(std::vector<std::wstring>& values) {
     return true;
 }
 
+// bad temp function (lol)
+void CalculateBezierPointSubdivide(const DirectX::SimpleMath::Vector2& start_point, std::vector<int>& x_points, std::vector<int>& y_points, std::vector<slidercurve>& calculated_points, const double& start, const double& end, int dist_size) {
+
+    assert(start != end);
+
+    double step = (end - start) / 2.0;
+    double t = start + step;
+
+    int x, y;
+
+    // first half
+    x = Utilities::getBezierPoint(&x_points, t);
+    y = Utilities::getBezierPoint(&y_points, t);
+
+    // half point
+    DirectX::SimpleMath::Vector2 half_point = DirectX::SimpleMath::Vector2(x, y);
+
+    // if segment too long, divide and try to add more.
+    double distance = DirectX::SimpleMath::Vector2::Distance(start_point, half_point);
+
+    if (distance > dist_size) {
+        CalculateBezierPointSubdivide(start_point, x_points, y_points, calculated_points, start, t, dist_size);
+    }
+    else {
+    
+    }
+
+    // add our newly calculated segment
+    calculated_points.push_back(slidercurve(x, y));
+
+    // 2nd half
+    t = end;
+
+    x = Utilities::getBezierPoint(&x_points, t);
+    y = Utilities::getBezierPoint(&y_points, t);
+
+    if (DirectX::SimpleMath::Vector2::Distance(half_point, DirectX::SimpleMath::Vector2(x, y)) > dist_size) {
+        CalculateBezierPointSubdivide(half_point, x_points, y_points, calculated_points, start + step, t, dist_size);
+    }
+    // add our newly calculated segment
+    calculated_points.push_back(slidercurve(x, y));
+}
+
+
 inline void CalculateBezierPts(hitobject& object, std::vector<int> &x_points, std::vector<int> &y_points, double &dist_left)
 {
     int x, y;
 
     DirectX::SimpleMath::Vector2 prev_point = DirectX::SimpleMath::Vector2(x_points.front(), y_points.front());
 
-    //  https://gamedev.stackexchange.com/questions/5373/moving-ships-between-two-planets-along-a-bezier-missing-some-equations-for-acce/5427#5427
-    for (double t = 0; t <= 1; t += 0.01)
-    {
-        x = Utilities::getBezierPoint(&x_points, t);
-        y = Utilities::getBezierPoint(&y_points, t);
+    // always add our t = 0 point.
+    object.slidercurves_calculated.push_back(slidercurve(Utilities::getBezierPoint(&x_points, 0), Utilities::getBezierPoint(&y_points, 0)));
+    
+    // how long is a segment? (pixels)
+    constexpr int SEGMENT_LENGTH = 10;
 
-        // HACK: i really don't know how to do this.
-        if (DirectX::SimpleMath::Vector2::Distance(prev_point, DirectX::SimpleMath::Vector2(x, y)) < 10 && t != 0)
-        {
-            continue;
+    // To achieve a uniform distribution of segments along a Bezier curve, you need to use a technique called "adaptive subdivision". 
+    // This technique involves recursively dividing the curve into smaller segments until each segment is approximately the same length.
+    // 
+    // Here are the general steps you can follow :
+    //
+    // Choose a desired maximum segment length.
+    //    Subdivide the curve into two halves by evaluating the curve at t = 0.5.
+    //    Compute the length of each half of the curve.
+    //    If either half is longer than the maximum segment length, subdivide that half and repeat from step 3.
+    //    If both halves are shorter than the maximum segment length, add both halves to the list of segments.
+    //    Repeat steps 2 - 5 for each segment until all segments are shorter than the maximum segment length.
+    CalculateBezierPointSubdivide(prev_point, x_points, y_points, object.slidercurves_calculated, 0.0, 1.0, SEGMENT_LENGTH);
+
+    // remove excess sliderpoints
+    // FIXME: supposed to extrapolate from SEGMENT_LENGTH but that somehow removes too much slidercurves, so for now it's just the magic number 2
+    int extrapolated_curves_length = object.slidercurves_calculated.size() * 2;
+
+    if (extrapolated_curves_length > dist_left) {
+
+        size_t curves_removal_count = (extrapolated_curves_length - dist_left) / SEGMENT_LENGTH;
+
+        OutputDebugString(std::wstring(L"beatmap::CalculateBezierPts() : obj @ " + std::to_wstring(object.start_time) + L" removing " + std::to_wstring(curves_removal_count) + L" exceess points\n").c_str());
+
+        for (size_t i = 0; i < curves_removal_count; i++) {
+            object.slidercurves_calculated.pop_back();
         }
-
-        dist_left -= DirectX::SimpleMath::Vector2::Distance(prev_point, DirectX::SimpleMath::Vector2(x, y));
-
-        if (dist_left < 0)
-            break;
-
-        prev_point = DirectX::SimpleMath::Vector2(x, y);
-
-        object.slidercurves_calculated.push_back(slidercurve(x, y));
     }
 
     x_points.clear();
@@ -137,10 +193,14 @@ bool beatmap::ParseHitObjectSlider(hitobject& object)
     if (object.slidertype == L"B")
     {
         double length_left = object.pixel_length;
-        int size = object.slidercurves.size();
 
-        //  segment size (pixels) btw
-        double segment_length = 20;
+        // HACK: @ aspire mappers: what do you gain by doing this, why
+        // assume that this slider is VERY huge.
+        if (length_left < 0) {
+            length_left = 1000000;
+        }
+
+        int size = object.slidercurves.size();
 
         std::vector<int> x_points, y_points;
         x_points.push_back(object.x);
@@ -153,7 +213,7 @@ bool beatmap::ParseHitObjectSlider(hitobject& object)
             x_points.push_back(object.slidercurves.at(i).x);
             y_points.push_back(object.slidercurves.at(i).y);
 
-            // new bezier line.
+            // calculate a completely new bezier line (seperate).
             if (i + 1 < object.slidercurves.size() && object.slidercurves.at(i) == object.slidercurves.at(i + 1))
             {
                 CalculateBezierPts(object, x_points, y_points, length_left);

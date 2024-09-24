@@ -119,7 +119,8 @@ void osuGame::readMemory()
         if (bOsuIngame) 
         {
             // first offset 56 stuff goes here
-            ReadProcessMemory(hOsu, LPCVOID(pPlayData + 56), &pTemp, sizeof DWORD32, nullptr);
+            // https://github.com/Piotrekol/ProcessMemoryDataFinder/blob/1b48309f87449d9269d289278e41618e32b0213d/OsuMemoryDataProvider/OsuMemoryModels/Abstract/MainPlayerScore.cs
+            ReadProcessMemory(hOsu, LPCVOID(pPlayData + 56), &pTemp, sizeof DWORD32, nullptr); // ie 0x38
 
             ReadProcessMemory(hOsu, LPCVOID(pTemp + 138), &hit300, sizeof std::uint16_t, nullptr);
             ReadProcessMemory(hOsu, LPCVOID(pTemp + 136), &hit100, sizeof std::uint16_t, nullptr);
@@ -136,12 +137,46 @@ void osuGame::readMemory()
                 ReadProcessMemory(hOsu, LPCVOID(pTemp + 28), &mods, sizeof DWORD32, nullptr);
             }
 
+            // fixme: shove this into a function pls
+            // stolen from https://github.com/Piotrekol/ProcessMemoryDataFinder/blob/95030bba9c5e2de0667c4ae95e6e6b1fbbde3d5c/ProcessMemoryDataFinder/ObjectReader.cs#L132
+            // the structure of the array seems to be implemented in a way where
+            // [???, 4 bytes] [data ptr, 4 bytes???] [???, 4 bytes] [size, 4 bytes]
+
+            // and where data ptr leads to [???, 4 bytes] [???, 4 bytes that goes 32 -> 64 -> 128(...)] [items, 4 bytes, repeated]
+
+            // "baseAddress"
+            DWORD pHitErrorList;
+            // read the ptr of list
+            ReadProcessMemory(hOsu, LPCVOID(pTemp + 0x38), &pHitErrorList, sizeof DWORD, nullptr);
+
+            // get our list size
+            std::int32_t list_size;
+            ReadProcessMemory(hOsu, LPCVOID(pHitErrorList + (sizeof std::int32_t * 3)), &list_size, sizeof std::int32_t, nullptr);
+
+            if (list_size > 0) {
+                DWORD hit_error_ptr;
+                ReadProcessMemory(hOsu, LPCVOID(pHitErrorList + (sizeof std::int32_t)), &hit_error_ptr, sizeof std::int32_t, nullptr);
+
+                std::int32_t* hit_error_buf = new std::int32_t[(size_t)list_size];
+                // we skip 8 bytes, i don't know why.
+                ReadProcessMemory(hOsu, LPCVOID(hit_error_ptr + 2 * sizeof std::int32_t), hit_error_buf, sizeof std::int32_t * list_size, nullptr);
+
+                // copy into our vector
+                hit_errors.clear(); // idk how hard this hits performance, but idk.
+                hit_errors.insert(hit_errors.begin(), &hit_error_buf[0], &hit_error_buf[list_size]);
+
+                delete[] hit_error_buf;
+            }
+            else if (hit_errors.size() > 0 && list_size < 1) {
+                hit_errors.clear();
+            }
+
             // first offset 64
-            ReadProcessMemory(hOsu, LPCVOID(pPlayData + 64), &pTemp, sizeof DWORD32, nullptr);
+            ReadProcessMemory(hOsu, LPCVOID(pPlayData + 0x40), &pTemp, sizeof DWORD32, nullptr);
 
             // we're using playerhp instead of playerhpsmoothed because lol 
             // playerhpsmoothed is 28 and nonsmoothed is 20
-            ReadProcessMemory(hOsu, LPCVOID(pTemp + 28), &player_hp, sizeof double_t, nullptr);
+            ReadProcessMemory(hOsu, LPCVOID(pTemp + 28), &player_hp, sizeof double_t, nullptr); // ie 0x1C
         }
     }
 
@@ -242,17 +277,17 @@ void osuGame::readMemory()
 
     /////////
 
+    // https://github.com/Piotrekol/ProcessMemoryDataFinder/blob/master/OsuMemoryDataProvider/OsuMemoryModels/Direct/CurrentBeatmap.cs
     if (pBeatMapData != NULL)
     {
-        // offsets are https://github.com/Piotrekol/ProcessMemoryDataFinder/blob/3a48045f9686075d67c9533a06f34d98a285afaf/OsuMemoryDataProvider/OsuMemoryReader.cs#L81
-        ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 0xC8), &MemoryBeatMapID, sizeof std::int32_t, nullptr);
-        ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 0xCC), &MemoryBeatMapSetID, sizeof std::int32_t, nullptr);
+        ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 0xCC), &MemoryBeatMapID, sizeof std::int32_t, nullptr);
+        ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 0xD0), &MemoryBeatMapSetID, sizeof std::int32_t, nullptr);
 
         // strings
 
         DWORD32 ptr, length;
 
-        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 0x7C), &ptr, sizeof DWORD32, nullptr))
+        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 0x80), &ptr, sizeof DWORD32, nullptr))
         {
             MemoryMapString = Utilities::ReadWStringFromMemory(hOsu, ptr);
         }
@@ -261,22 +296,22 @@ void osuGame::readMemory()
             OutputDebugStringW(L"MemoryMapString Read Fail!\n");
         }
 
-        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 0x90), &ptr, sizeof DWORD32, nullptr))
-        {
-            MemoryBeatMapFileName = Utilities::ReadWStringFromMemory(hOsu, ptr);
-        }
-        else
-        {
-            OutputDebugStringW(L"MemoryBeatMapFileName Read Fail!\n");
-        }
-
-        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 0x74), &ptr, sizeof DWORD32, nullptr))
+        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 0x78), &ptr, sizeof DWORD32, nullptr))
         {
             MemoryBeatMapFolderName = Utilities::ReadWStringFromMemory(hOsu, ptr);
         }
         else
         {
             OutputDebugStringW(L"MemoryBeatMapFolderName Read Fail!\n");
+        }
+
+        if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 0x94), &ptr, sizeof DWORD32, nullptr))
+        {
+            MemoryBeatMapFileName = Utilities::ReadWStringFromMemory(hOsu, ptr);
+        }
+        else
+        {
+            OutputDebugStringW(L"MemoryBeatMapFileName Read Fail!\n");
         }
 
         if (ReadProcessMemory(hOsu, LPCVOID(pBeatMapData + 0x6C), &ptr, sizeof DWORD32, nullptr))
@@ -288,8 +323,6 @@ void osuGame::readMemory()
             OutputDebugStringW(L"MemoryBeatMapMD5 Read Fail!\n");
         }
     }
-
-
 }
 
 void osuGame::readMemoryOnlyFps()

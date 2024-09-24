@@ -365,7 +365,7 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
             }
             if (nds > 15)
             {
-                nds_warning += L" warning!";
+                nds_warning += L"+";
             }
 
             textString = std::wstring(L"map prog: ") + Utilities::to_wstring_with_precision((static_cast<double>(gameStat.osuMapTime) / gameStat.loadedMap.hitobjects[gameStat.loadedMap.hitobjects.size() - 1].start_time) * 100, 1) +
@@ -379,6 +379,50 @@ void Overlay::RenderStatTexts(osuGame &gameStat)
         }
         break;
     }
+    }
+
+    std::int64_t avg = 0;
+    std::uint64_t avg_abs = 0;
+
+    double unstable_rate = -1;
+
+    if (!gameStat.hit_errors.empty()) {
+        // might cause performance problems?
+        for (int a : gameStat.hit_errors) { avg += a; avg_abs += std::abs(a); }
+
+        // unstable rate calculation
+        double error_mean = static_cast<double>(avg) / gameStat.hit_errors.size();
+        double error_dev_sum = 0.0;
+        for (double err : gameStat.hit_errors) {
+
+            // std::pow(err - error_mean, 2) causes issues apparently???
+            double x = err - error_mean;
+            x *= x;
+
+            error_dev_sum += x;
+        }
+
+        // unstable rate (/ 10)
+        unstable_rate = std::sqrt(error_dev_sum / gameStat.hit_errors.size());
+
+        // should never happen lmao
+        if (unstable_rate > 100000) {
+            unstable_rate = -1;
+        }
+
+        this->DrawText(
+            Utilities::swprintf_s(
+                L"err avg %.2fms (abs %.2fms) / %.2f / last: %dms",
+                avg / static_cast<float>(gameStat.hit_errors.size()),
+                avg_abs / static_cast<float>(gameStat.hit_errors.size()),
+                unstable_rate,
+                gameStat.hit_errors.back()
+            ),
+            0.4f, Colors::White
+        );
+    }
+    else {
+        this->DrawText(L"err avg 0.00ms (abs 0.00ms) / 0.00 / last: (first note)", 0.4f, Colors::White);
     }
 
     /*
@@ -428,6 +472,9 @@ void Overlay::RenderStatTextsMania(osuGame& gameStat) {
     m_fontPos = DirectX::SimpleMath::Vector2(m_outputWidth * 0.6653125, m_outputHeight * 0.125);
     // m_fontPos = DirectX::SimpleMath::Vector2(570.f, 90.f);
 
+    // hack, so we can keep the "general stat" below.
+    bool in_note = false;
+
     for (int i = 0; i < 10; ++i)    // 10 because hardcoded row lol
     {
         std::vector<hitobject>* row_hitobjects = &gameStat.loadedMap.hitobjects_sorted[i];
@@ -463,6 +510,9 @@ void Overlay::RenderStatTextsMania(osuGame& gameStat) {
             nullptr,
             nullptr
         );
+
+        if (!in_note) 
+            in_note = true;
 
         if (next_object == nullptr)
         {
@@ -502,7 +552,7 @@ void Overlay::RenderStatTextsMania(osuGame& gameStat) {
         m_fontPos.x -= 30;
     }
 
-    if (gameStat.osuMapTime < gameStat.loadedMap.hitobjects[gameStat.loadedMap.hitobjects.size() - 1].end_time)
+    if (in_note)
     {
         timingpoint* current_timingpoint = gameStat.loadedMap.getCurrentTimingPoint(), * next_timingpoint = nullptr, * prev_timingpoint = nullptr;
         for (int i = gameStat.loadedMap.currentTimeIndex + 1; i < gameStat.loadedMap.timingpoints.size(); i++)
@@ -591,10 +641,12 @@ void Overlay::RenderStatTextsMania(osuGame& gameStat) {
         }
         if (nds > (nds_warning_c + 6))
         {
-            nds_warning += L" warning!";
+            nds_warning += L"+";
         }
 
-        textString = std::wstring(L"map prog: ") + Utilities::to_wstring_with_precision((static_cast<double>(gameStat.osuMapTime) / gameStat.loadedMap.hitobjects[gameStat.loadedMap.hitobjects.size() - 1].end_time) * 100, 1) + std::wstring(L"% timing: ") + std::to_wstring(gameStat.beatIndex / 4) +
+        textString = std::wstring(L"map prog: ") + 
+            Utilities::to_wstring_with_precision((static_cast<double>(gameStat.osuMapTime) / gameStat.loadedMap.hitobjects[gameStat.loadedMap.hitobjects.size() - 1].end_time) * 100, 1) + 
+            std::wstring(L"% timing: ") + std::to_wstring(gameStat.beatIndex / 4) +
             std::wstring(L":") + std::to_wstring(gameStat.beatIndex % 4) + std::wstring(L" total note/sec: ") + std::to_wstring(nds) + nds_warning;
 
         m_font->DrawString(m_spriteBatch.get(), textString.c_str(),
@@ -788,7 +840,7 @@ void Overlay::RenderStatTextsStandard(osuGame& gameStat) {
         {
             textString += L" Overlapping: " + std::to_wstring(count) + (count == 20 ? L"+." : L".");
         }
-
+        
         this->DrawText(textString, 0.4f, Colors::LightPink, nullptr, nullptr);
     }
     
@@ -952,7 +1004,7 @@ void Overlay::RenderStatTextsStandard(osuGame& gameStat) {
         }
         if (nds > 15)
         {
-            nds_warning += L" warning!";
+            nds_warning += L"+";
         }
 
         // draw map prog and timing.
@@ -1086,13 +1138,11 @@ void Overlay::RenderAssistant(osuGame &gameStat)
 #endif
         break;
     }
-    case PlayMode::MANIA: {
-
+    case PlayMode::MANIA: /* {
         // background color.
         DirectX::XMVECTORF32 bgColor = Colors::White;
 
         // origin: x= 540.f, y= 360.f
-
 
         // this defines where we start
         //DirectX::SimpleMath::Vector3 playField = DirectX::SimpleMath::Vector3(m_outputWidth * 0.7653125, m_outputHeight / 2.5, 0);
@@ -1136,88 +1186,16 @@ void Overlay::RenderAssistant(osuGame &gameStat)
                     endpos = m_outputHeight;
 
                 m_batch->DrawQuad(
-                    VertexPositionColor(DirectX::SimpleMath::Vector3(playField.x + (columnpx * col), endpos + notesize / 2  , 0.f), bgColor),
+                    VertexPositionColor(DirectX::SimpleMath::Vector3(playField.x + (columnpx * col), endpos + notesize / 2, 0.f), bgColor),
                     VertexPositionColor(DirectX::SimpleMath::Vector3(playField.x + (columnpx * (col + 1)), endpos + notesize / 2, 0.f), bgColor),
-                    VertexPositionColor(DirectX::SimpleMath::Vector3(playField.x + (columnpx * (col + 1)), startpos - notesize / 2,  0.f), bgColor),
+                    VertexPositionColor(DirectX::SimpleMath::Vector3(playField.x + (columnpx * (col + 1)), startpos - notesize / 2, 0.f), bgColor),
                     VertexPositionColor(DirectX::SimpleMath::Vector3(playField.x + (columnpx * col), startpos - notesize / 2, 0.f), bgColor)
                 );
 
             }
         }
-
+    }*/
         break;
-    }
-    // clean up mania too later
-                           /*
-    case PlayMode::MANIA: {
-        // render vertically. until then don't draw anything.
-        if (!gameStat.bOsuIngame)
-            return;
-        // origin: x= 540.f, y= 360.f
-
-        DirectX::SimpleMath::Vector3 v1, v2, v3, v4;
-        DirectX::XMVECTORF32 bgColor = Colors::White;
-
-        // this defines where we start
-        DirectX::SimpleMath::Vector3 playField = DirectX::SimpleMath::Vector3(m_outputWidth * 0.421875, m_outputHeight / 2, 0);
-        // this only defines the size; x is x and y is y. it's not flipped or anything.
-        DirectX::SimpleMath::Vector2 playField_size = DirectX::SimpleMath::Vector2(m_outputWidth / 0.578125, m_outputHeight / 3);
-        //DirectX::SimpleMath::Vector2 playField_size = DirectX::SimpleMath::Vector2(740, gameStat.loadedMap.CircleSize * 40);
-
-        // this works well for >=7k
-        // everything else... well..
-        if (gameStat.loadedMap.CircleSize != 7)
-        {
-            playField.x += (playField_size.y / gameStat.loadedMap.CircleSize * (gameStat.loadedMap.CircleSize - 7) / 1.5);
-        }
-
-        int columnpx = playField_size.y / gameStat.loadedMap.CircleSize;
-
-        float notesize = 20.f / (gameStat.loadedMap.CircleSize / 4);
-
-        for (int col = 0; col < gameStat.loadedMap.CircleSize; ++col)
-        {
-            for (std::uint32_t i = gameStat.loadedMap.currentObjectIndex_sorted[col]; i < gameStat.loadedMap.hitobjects_sorted[col].size() && 1000 >= gameStat.loadedMap.hitobjects_sorted[col][i].start_time - gameStat.osuMapTime; ++i)
-            {
-                if (gameStat.loadedMap.hitobjects_sorted[col][i].IsCircle())
-                {
-                    float startpos = playField.x + (gameStat.loadedMap.hitobjects_sorted[col][i].start_time - gameStat.osuMapTime);
-
-                    if (startpos <= playField.x)
-                        continue;
-
-                    m_batch->DrawQuad(
-                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos + notesize / 2, playField.y + (columnpx * col), 0.f), bgColor),
-                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos + notesize / 2, playField.y + (columnpx * (col + 1)), 0.f), bgColor),
-                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos - notesize / 2, playField.y + (columnpx * (col + 1)), 0.f), bgColor),
-                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos - notesize / 2, playField.y + (columnpx * col), 0.f), bgColor)
-                    );
-                }
-                else
-                {
-                    float startpos = playField.x + (gameStat.loadedMap.hitobjects_sorted[col][i].start_time - gameStat.osuMapTime);
-                    float endpos = playField.x + (gameStat.loadedMap.hitobjects_sorted[col][i].end_time - gameStat.osuMapTime);
-
-                    if (startpos < playField.x)
-                        startpos = playField.x;
-
-                    if (endpos >= m_outputWidth)
-                        endpos = m_outputWidth;
-                    if (endpos <= playField.x)
-                        continue;
-
-                    m_batch->DrawQuad(
-                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos - notesize / 2, playField.y + (columnpx * col), 0.f), bgColor),
-                        VertexPositionColor(DirectX::SimpleMath::Vector3(startpos - notesize / 2, playField.y + (columnpx * (col + 1)), 0.f), bgColor),
-                        VertexPositionColor(DirectX::SimpleMath::Vector3(endpos + notesize / 2, playField.y + (columnpx * (col + 1)), 0.f), bgColor),
-                        VertexPositionColor(DirectX::SimpleMath::Vector3(endpos + notesize / 2, playField.y + (columnpx * col), 0.f), bgColor)
-                    );
-                }
-            }
-        }
-        break;
-    }
-    */
     }
 }
 
@@ -1428,6 +1406,22 @@ void Overlay::RenderAssistantStandard(osuGame& gameStat)
         GetScreenCoordFromOsuPixelStandard(gameStat.loadedMap.getCurrentHitObject(), gameStat.hasMod(Mods::HardRock)),
         Colors::LightBlue, 0.f, m_font->MeasureString(textString.c_str()) * 0.6f, 0.6f);
 #endif
+
+    // bullshit
+    /*
+    for (uint32_t ur_mom = gameStat.loadedMap.currentObjectIndex; ur_mom > (int)(gameStat.loadedMap.currentObjectIndex) - 100 && ur_mom > 0; --ur_mom) {
+        // improved ballsack torture machine
+        hitobject balls = *gameStat.loadedMap.getHitObject(ur_mom);
+        hitobject* cock = &balls;
+        cock->repeat = 0;
+
+        if (cock->IsSlider()) {
+            Overlay::DrawSlider(*cock, gameStat.osuMapTime, Colors::LightBlue, gameStat.hasMod(Mods::HardRock), true, 1.0f);
+        }
+    }
+    */
+
+
     /*
      * Extra stuff for Current Hitobject that we must draw. 
      * 

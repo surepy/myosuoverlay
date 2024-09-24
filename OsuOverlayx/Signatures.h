@@ -78,6 +78,7 @@ public:
     /*
         These sigs are from:
         https://github.com/Piotrekol/ProcessMemoryDataFinder/blob/3a48045f9686075d67c9533a06f34d98a285afaf/OsuMemoryDataProvider/OsuMemoryReader.cs#L34
+        https://github.com/Piotrekol/ProcessMemoryDataFinder/blob/master/OsuMemoryDataProvider/StructuredOsuMemoryReader.cs
     */
     //F8 01 74 04 83 65
     static constexpr unsigned char OSU_BASE[] = { 0xF8, 0x01, 0x74, 0x04, 0x83, 0x65 };
@@ -98,7 +99,7 @@ public:
     //static constexpr char *TIME_MASK = PCHAR("xxxxx????x?x");
     //static constexpr int TIME_OFFSET = 5;
 
-    static constexpr int BEATMAP_DATA_OFFSET = -12; // NOTE: double ponter
+    static constexpr int BEATMAP_DATA_OFFSET = -12; // or 0xC NOTE: double ponter
 
     // NOTE: double pointer
     static constexpr unsigned char PLAYDATA[] = { 0x85, 0xC9, 0x74, 0x1F, 0x8D, 0x55, 0xF0, 0x8B, 0x01 };
